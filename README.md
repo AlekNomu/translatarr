@@ -75,6 +75,18 @@ mkv2srt --from-srt movie.en.srt -o movie.fr.srt
 mkv2srt movie.mkv --no-sync-check
 ```
 
+### Process an entire directory
+
+```bash
+# Scan a directory recursively for all MKV files
+mkv2srt --scan /mnt/my_series
+
+# Scan the current directory
+mkv2srt --scan
+```
+
+Each MKV is processed with the standard pipeline (existing SRT → translate, or Whisper → translate). Progress is displayed as `[1/N]`, `[2/N]`, etc. Files that fail are reported at the end without stopping the batch.
+
 ### Custom output path
 
 ```bash
@@ -93,7 +105,7 @@ mkv2srt movie.mkv -o /subtitles/my_movie.fr.srt
 | `--language` | auto | Audio language code (`en`, `de`, `es`, …) |
 | `--from-srt FILE` | — | Translate an existing `.srt` (timings untouched) |
 | `--no-sync-check` | off | Disable timing validation (on by default) |
-| `--keep-audio` | off | Preserve the temporary WAV file |
+| `--scan [DIR]` | — | Scan a directory recursively for MKV files (defaults to `.`) |
 | `--version` | — | Show version and exit |
 
 ---

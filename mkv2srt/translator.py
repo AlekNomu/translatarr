@@ -12,9 +12,7 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import replace
-
 from mkv2srt.models import Subtitle, SubtitleTrack
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -119,6 +117,7 @@ def _translate_one_by_one(translator, batch: list[Subtitle]) -> list[str]:
         try:
             parts.append(translator.translate(sub.text))
         except Exception:
-            parts.append(sub.text)   # keep original rather than losing the line
+            # Keep original rather than losing the line
+            parts.append(sub.text)   
         time.sleep(_FALLBACK_DELAY)
     return parts

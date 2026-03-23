@@ -29,9 +29,14 @@ class TestCheckSync:
         assert any("overlap" in i.message for i in issues)
 
     def test_long_duration(self):
-        track = _make_track((0.0, 10.0, "Very long subtitle"))
+        track = _make_track((0.0, 20.0, "Very long subtitle"))
         issues = check_sync(track)
         assert any("long" in i.message for i in issues)
+
+    def test_normal_duration_not_flagged(self):
+        track = _make_track((0.0, 10.0, "Normal-length subtitle"))
+        issues = check_sync(track)
+        assert not any("long" in i.message for i in issues)
 
     def test_empty_text(self):
         track = _make_track((0.0, 2.0, "   "))

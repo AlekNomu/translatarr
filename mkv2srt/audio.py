@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+WHISPER_SAMPLE_RATE = "16000"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Dependency check
@@ -55,11 +57,6 @@ def get_duration(video_path: Path) -> float | None:
     except Exception:
         return None
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Extraction
-# ─────────────────────────────────────────────────────────────────────────────
-
 def extract_audio(video_path: Path, wav_path: Path) -> None:
     """
     Extract the first audio track from *video_path* and write it as a
@@ -78,7 +75,7 @@ def extract_audio(video_path: Path, wav_path: Path) -> None:
         "-i",      str(video_path),
         "-vn",                       # drop video stream
         "-acodec", "pcm_s16le",      # 16-bit PCM
-        "-ar",     "16000",          # 16 kHz sample rate
+        "-ar",     WHISPER_SAMPLE_RATE,
         "-ac",     "1",              # mono
         str(wav_path),
     ]
@@ -88,11 +85,6 @@ def extract_audio(video_path: Path, wav_path: Path) -> None:
         sys.exit(f"ffmpeg failed:\n{result.stderr}")
 
     print("Audio extracted successfully.")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Embedded subtitle extraction
-# ─────────────────────────────────────────────────────────────────────────────
 
 def find_embedded_sub_index(video_path: Path) -> int | None:
     """Return the stream index of the best English subtitle track, or *None*.
@@ -154,5 +146,3 @@ def extract_subtitle(video_path: Path, stream_index: int, srt_path: Path) -> Non
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         sys.exit(f"ffmpeg subtitle extraction failed:\n{result.stderr}")
-
-    print("Subtitle extracted successfully.")

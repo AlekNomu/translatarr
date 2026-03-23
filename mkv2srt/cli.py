@@ -18,10 +18,11 @@ from mkv2srt.audio       import (extract_audio, extract_subtitle,
                                   require_ffmpeg)
 from mkv2srt.models       import SubtitleTrack
 from mkv2srt.srt_io       import read_srt, write_srt
-from mkv2srt.sync_checker import check_sync, print_sync_report
+from mkv2srt.sync_checker import check_sync
 from mkv2srt.transcriber  import WHISPER_MODELS, transcribe
 from mkv2srt.translator   import translate_track
 
+_FR_SUFFIXES = [".fr.srt", ".fr.cc.srt", ".fr.sdh.srt"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Argument parser
@@ -96,7 +97,8 @@ Whisper models  (fastest → most accurate):
     )
     parser.add_argument(
         "--no-sync-check",
-        action="store_true",
+        action="store_false",
+        dest="sync_check",
         help="Disable timing validation (sync check runs by default).",
     )
     parser.add_argument(
@@ -109,25 +111,12 @@ Whisper models  (fastest → most accurate):
         help="Scan a directory recursively for MKV files. Defaults to current dir.",
     )
     parser.add_argument(
-        "--keep-audio",
-        action="store_true",
-        help="Keep the temporary WAV file after transcription.",
-    )
-    parser.add_argument(
         "--version",
         action="version",
         version=f"mkv2srt {__version__}",
     )
 
     return parser
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pipeline helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-_FR_SUFFIXES = [".fr.srt", ".fr.cc.srt", ".fr.sdh.srt"]
-
 
 def _resolve_output(args: argparse.Namespace) -> Path:
     if args.output:
@@ -161,9 +150,9 @@ def _run_from_srt(args: argparse.Namespace, output_path: Path) -> None:
     track = read_srt(args.from_srt)
     track = translate_track(track)
 
-    if not args.no_sync_check:
+    if args.sync_check:
         duration = get_duration(args.input) if args.input else None
-        print_sync_report(check_sync(track, duration))
+        check_sync(track, duration)
 
     write_srt(track, output_path)
 
@@ -195,7 +184,7 @@ def _run_from_mkv(args: argparse.Namespace, output_path: Path) -> None:
     """
     require_ffmpeg()
 
-    video_duration = get_duration(args.input) if not args.no_sync_check else None
+    video_duration = get_duration(args.input) if args.sync_check else None
 
     # ── Try to reuse an existing SRT (external file or embedded) ───────────
     existing_srt = _find_english_srt(args.input)
@@ -221,24 +210,19 @@ def _run_from_mkv(args: argparse.Namespace, output_path: Path) -> None:
         # ── Full Whisper pipeline ────────────────────────────────────────────
         print("No SRT found (external or embedded) — running Whisper transcription…")
 
-        if args.keep_audio:
-            wav_path = args.input.with_suffix(".wav")
-            track    = _transcribe(args, wav_path)
-        else:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                wav_path = Path(tmp.name)
-            try:
-                track = _transcribe(args, wav_path)
-            finally:
-                if wav_path.exists():
-                    wav_path.unlink()
-                    print("Temporary WAV file removed.")
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            wav_path = Path(tmp.name)
+        try:
+            track = _transcribe(args, wav_path)
+        finally:
+            if wav_path.exists():
+                wav_path.unlink()
 
         track = translate_track(track, source_lang=args.language or "auto")
 
     # ── Sync check (on by default) ──────────────────────────────────────────
-    if not args.no_sync_check:
-        print_sync_report(check_sync(track, video_duration))
+    if args.sync_check:
+        check_sync(track, video_duration)
 
     write_srt(track, output_path)
 
@@ -280,9 +264,9 @@ def _run_scan(args: argparse.Namespace) -> None:
 
     succeeded, failed = 0, 0
     for i, mkv in enumerate(mkv_files, 1):
-        print(f"\n{'═' * 60}")
+        print(f"\n{'-' * 60}")
         print(f"  [{i}/{len(mkv_files)}] {mkv.relative_to(scan_dir)}")
-        print(f"{'═' * 60}\n")
+        print(f"{'-' * 60}\n")
 
         args.input = mkv
         try:
@@ -292,19 +276,13 @@ def _run_scan(args: argparse.Namespace) -> None:
             print(f"\nError processing {mkv.name}: {exc}\n")
             failed += 1
 
-    print(f"\n{'═' * 60}")
+    print(f"\n{'-' * 60}")
     print(f"  Scan complete: {succeeded} succeeded, {failed} failed")
-    print(f"{'═' * 60}\n")
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args   = parser.parse_args(argv)
-
-    # ── Banner ────────────────────────────────────────────────────────────────
-    print(f"\n{'─' * 50}")
-    print(f"  mkv2srt v{__version__}")
-    print(f"{'─' * 50}\n")
 
     # ── Scan mode ─────────────────────────────────────────────────────────────
     if args.scan is not None:

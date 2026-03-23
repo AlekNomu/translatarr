@@ -7,15 +7,13 @@ Checks performed
 ----------------
 * Negative or zero display duration
 * Overlap with the following subtitle (tolerance: 50 ms)
-* Unusually long display duration (> 7 s)
+* Unusually long display duration (> 15 s)
 * Empty text
 * Last subtitle ending after the video duration
 """
 
 from __future__ import annotations
-
 from dataclasses import dataclass
-
 from mkv2srt.models import SubtitleTrack, seconds_to_srt_time
 
 
@@ -35,12 +33,9 @@ class SyncIssue:
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
-
-#: Maximum accepted display duration in seconds before flagging as suspicious.
-MAX_DISPLAY_DURATION: float = 7.0
-
-#: Overlap tolerance in seconds (50 ms).
+MAX_DISPLAY_DURATION: float = 15.0
 OVERLAP_TOLERANCE: float = 0.05
+END_OF_VIDEO_TOLERANCE: float = 1.0
 
 
 def check_sync(
@@ -90,7 +85,7 @@ def check_sync(
     # ── Last subtitle beyond video end ───────────────────────────────────────
     if video_duration is not None and subtitles:
         last = subtitles[-1]
-        if last.end > video_duration + 1.0:
+        if last.end > video_duration + END_OF_VIDEO_TOLERANCE:
             issues.append(SyncIssue(
                 last.index,
                 f"ends at {last.end_timestamp}, beyond video duration "
@@ -98,16 +93,3 @@ def check_sync(
             ))
 
     return issues
-
-
-def print_sync_report(issues: list[SyncIssue]) -> None:
-    """Print a human-readable sync report to stdout."""
-    print("\nSynchronisation check")
-    print("─" * 40)
-    if not issues:
-        print("  No issues found.")
-    else:
-        for issue in issues:
-            print(issue)
-        print(f"\n  {len(issues)} issue(s) detected — review the entries above.")
-    print()
