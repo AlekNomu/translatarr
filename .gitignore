@@ -1,0 +1,58 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# ── Distribution / packaging ──────────────────────────────────────────────────
+.Python
+build/
+dist/
+eggs/
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.coveragerc
+
+# ── Whisper model cache ───────────────────────────────────────────────────────
+# (large binary files — download on demand, do not commit)
+~/.cache/whisper/
+
+# ── Media files ───────────────────────────────────────────────────────────────
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+
+# ── Generated subtitles ───────────────────────────────────────────────────────
+# Uncomment to ignore all generated .srt files
+# *.srt
+
+# ── IDEs & editors ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
