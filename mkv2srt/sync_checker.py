@@ -92,4 +92,14 @@ def check_sync(
                 f"({seconds_to_srt_time(video_duration)})",
             ))
 
+    print("\nSynchronisation check")
+    print("─" * 40)
+    if not issues:
+        print("  No issues found.")
+    else:
+        for issue in issues:
+            print(issue)
+        print(f"\n  {len(issues)} issue(s) detected — review the entries above.")
+    print()
+
     return issues

@@ -14,6 +14,12 @@ SECONDS_PER_MINUTE = 60
 MS_PER_SECOND = 1000
 MIN_SRT_BLOCK_LINES = 3
 
+# Matches SRT timecodes: "HH:MM:SS,mmm --> HH:MM:SS,mmm"
+# Accepts both comma and dot as ms separator (e.g. 00:01:23,456 or 00:01:23.456)
+_SRT_TIME_PATTERN = re.compile(
+    r"(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})"
+)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Time helpers
@@ -116,13 +122,7 @@ class SubtitleTrack:
             except ValueError:
                 continue
 
-            # Matches SRT timecodes: "HH:MM:SS,mmm --> HH:MM:SS,mmm"
-            # Accepts both comma and dot as ms separator (e.g. 00:01:23,456 or 00:01:23.456)
-            time_pattern = re.compile(
-                r"(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})"
-            )
-
-            time_match = time_pattern.match(lines[1])
+            time_match = _SRT_TIME_PATTERN.match(lines[1])
             
             if not time_match:
                 continue
@@ -139,6 +139,39 @@ class SubtitleTrack:
     def to_srt(self) -> str:
         """Render the full SRT file content."""
         return "\n".join(sub.to_srt_block() for sub in self.subtitles)
+
+    def has_same_timestamps(self, other: "SubtitleTrack", tolerance: float = 0.05) -> bool:
+        """Check if two tracks have identical timestamps (within tolerance)."""
+        if len(self) != len(other):
+            return False
+        return all(
+            abs(a.start - b.start) <= tolerance and abs(a.end - b.end) <= tolerance
+            for a, b in zip(self.subtitles, other.subtitles)
+        )
+
+    def resync_from(self, reference: "SubtitleTrack") -> "SubtitleTrack":
+        """Apply timestamps from *reference* onto this track's text.
+
+        Only works when both tracks have the same number of entries.
+        Returns a new SubtitleTrack with reference timestamps and this track's text.
+
+        :raises ValueError: If the two tracks have different lengths.
+        """
+        if len(self) != len(reference):
+            raise ValueError(
+                f"Cannot resync: track has {len(self)} entries "
+                f"but reference has {len(reference)}"
+            )
+        resynced = [
+            Subtitle(
+                index=ref.index,
+                start=ref.start,
+                end=ref.end,
+                text=sub.text,
+            )
+            for sub, ref in zip(self.subtitles, reference.subtitles)
+        ]
+        return SubtitleTrack(subtitles=resynced)
 
     def __len__(self) -> int:
         return len(self.subtitles)

@@ -111,3 +111,77 @@ class TestSubtitleTrack:
         track = SubtitleTrack.from_srt_text(SRT_SAMPLE)
         texts = [sub.text for sub in track]
         assert texts == ["Hello world", "Goodbye world"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Resync
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestResync:
+    def test_resync_applies_reference_timestamps(self):
+        en_track = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=10.0, end=12.0, text="Hello"),
+            Subtitle(index=2, start=15.0, end=18.0, text="World"),
+        ])
+        fr_track = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=0.0, end=2.0, text="Bonjour"),
+            Subtitle(index=2, start=3.0, end=5.0, text="Monde"),
+        ])
+        resynced = fr_track.resync_from(en_track)
+
+        assert resynced.subtitles[0].text == "Bonjour"
+        assert resynced.subtitles[0].start == pytest.approx(10.0)
+        assert resynced.subtitles[0].end == pytest.approx(12.0)
+        assert resynced.subtitles[1].text == "Monde"
+        assert resynced.subtitles[1].start == pytest.approx(15.0)
+        assert resynced.subtitles[1].end == pytest.approx(18.0)
+
+    def test_resync_raises_on_length_mismatch(self):
+        en_track = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=0.0, end=2.0, text="Hello"),
+        ])
+        fr_track = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=0.0, end=2.0, text="Bonjour"),
+            Subtitle(index=2, start=3.0, end=5.0, text="Monde"),
+        ])
+        with pytest.raises(ValueError, match="Cannot resync"):
+            fr_track.resync_from(en_track)
+
+    def test_has_same_timestamps_true(self):
+        track_a = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Hello"),
+            Subtitle(index=2, start=5.0, end=7.0, text="World"),
+        ])
+        track_b = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Bonjour"),
+            Subtitle(index=2, start=5.0, end=7.0, text="Monde"),
+        ])
+        assert track_a.has_same_timestamps(track_b)
+
+    def test_has_same_timestamps_within_tolerance(self):
+        track_a = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Hello"),
+        ])
+        track_b = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.04, end=3.02, text="Bonjour"),
+        ])
+        assert track_a.has_same_timestamps(track_b)
+
+    def test_has_same_timestamps_false_when_different(self):
+        track_a = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Hello"),
+        ])
+        track_b = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=5.0, end=8.0, text="Bonjour"),
+        ])
+        assert not track_a.has_same_timestamps(track_b)
+
+    def test_has_same_timestamps_false_when_different_length(self):
+        track_a = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Hello"),
+        ])
+        track_b = SubtitleTrack(subtitles=[
+            Subtitle(index=1, start=1.0, end=3.0, text="Bonjour"),
+            Subtitle(index=2, start=5.0, end=7.0, text="Monde"),
+        ])
+        assert not track_a.has_same_timestamps(track_b)

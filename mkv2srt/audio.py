@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 WHISPER_SAMPLE_RATE = "16000"
+TEXT_CODECS = {"subrip", "srt", "ass", "ssa", "webvtt", "mov_text"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -114,9 +115,6 @@ def find_embedded_sub_index(video_path: Path) -> int | None:
     if not streams:
         return None
 
-    TEXT_CODECS = {"subrip", "srt", "ass", "ssa", "webvtt", "mov_text"}
-
-    # Filter to text-based subtitle streams only
     text_streams = [s for s in streams if s.get("codec_name", "") in TEXT_CODECS]
     if not text_streams:
         return None

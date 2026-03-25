@@ -157,57 +157,94 @@ def _run_from_srt(args: argparse.Namespace, output_path: Path) -> None:
     write_srt(track, output_path)
 
 
-def _find_english_srt(mkv_path: Path) -> Path | None:
-    """Look for an existing English .srt next to the MKV file."""
+_EN_SRT_TAGS = ("en", "eng", "english", "")
+_FR_SRT_TAGS = ("fr", "fre", "french")
+
+
+def _find_srt_by_lang(mkv_path: Path, lang_tags: tuple[str, ...]) -> Path | None:
+    """Look for an existing .srt next to the MKV file matching one of the language tags."""
     stem = mkv_path.stem
     parent = mkv_path.parent
-    # Common naming patterns for English subtitles
-    candidates = [
-        parent / f"{stem}.en.srt",
-        parent / f"{stem}.eng.srt",
-        parent / f"{stem}.english.srt",
-        parent / f"{stem}.srt",
-    ]
-    for candidate in candidates:
+    for tag in lang_tags:
+        suffix = f".{tag}.srt" if tag else ".srt"
+        candidate = parent / f"{stem}{suffix}"
         if candidate.exists():
             return candidate
     return None
 
 
-def _run_from_mkv(args: argparse.Namespace, output_path: Path) -> None:
+def _get_english_srt(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
+    """Find an English .srt (external file or embedded in MKV).
+
+    Returns (english_srt_path, embedded_srt_path).
+    embedded_srt_path is set only when extraction was needed (for cleanup).
+    """
+    existing_srt = _find_srt_by_lang(args.input, _EN_SRT_TAGS)
+    embedded_srt_path: Path | None = None
+
+    if not existing_srt:
+        sub_index = find_embedded_sub_index(args.input)
+        if sub_index is not None:
+            tmp = tempfile.NamedTemporaryFile(suffix=".srt", delete=False)
+            embedded_srt_path = Path(tmp.name)
+            tmp.close()
+            extract_subtitle(args.input, sub_index, embedded_srt_path)
+            existing_srt = embedded_srt_path
+
+    return existing_srt, embedded_srt_path
+
+
+def _run_from_mkv(args: argparse.Namespace, output_path: Path) -> bool:
     """Mode B — full pipeline from an MKV file.
 
-    1. Check for an existing English .srt next to the MKV.
-    2. If found → translate it to French (timings preserved).
-    3. If not found → Whisper transcribe + translate to French.
-    4. Always run sync check.
+    Priority order:
+    1. If a French .srt AND an English .srt both exist with the same entry
+       count → resync the French timestamps from the English ones.
+    2. If an English .srt exists (but no French, or different count)
+       → translate it to French.
+    3. Otherwise → Whisper transcribe + translate to French.
+
+    Returns False if no work was needed (already aligned), True otherwise.
     """
     require_ffmpeg()
 
     video_duration = get_duration(args.input) if args.sync_check else None
 
-    # ── Try to reuse an existing SRT (external file or embedded) ───────────
-    existing_srt = _find_english_srt(args.input)
-    embedded_srt_path: Path | None = None
+    # ── Look for existing subtitles ──────────────────────────────────────────
+    english_srt, embedded_srt_path = _get_english_srt(args)
+    french_srt = _find_srt_by_lang(args.input, _FR_SRT_TAGS)
 
-    if not existing_srt:
-        # Check for embedded subtitle tracks in the MKV
-        sub_index = find_embedded_sub_index(args.input)
-        if sub_index is not None:
-            embedded_srt_path = args.input.with_suffix(".extracted.srt")
-            extract_subtitle(args.input, sub_index, embedded_srt_path)
-            existing_srt = embedded_srt_path
+    # ── Resync: French text + English timestamps ─────────────────────────────
+    if french_srt and english_srt:
+        en_track = read_srt(english_srt)
+        fr_track = read_srt(french_srt)
 
-    if existing_srt:
-        print(f"Using SRT: {existing_srt}")
+        if len(en_track) == len(fr_track):
+            if fr_track.has_same_timestamps(en_track):
+                print(f"FR and EN already aligned ({len(fr_track)} entries) — nothing to do.")
+                if embedded_srt_path and embedded_srt_path.exists():
+                    embedded_srt_path.unlink()
+                return False
+
+            print(f"Resync: {len(fr_track)} entries match between EN and FR")
+            print(f"    → Applying timestamps from {english_srt.name}")
+            track = fr_track.resync_from(en_track)
+        else:
+            print(
+                f"Entry count mismatch (EN={len(en_track)}, FR={len(fr_track)})"
+                " → translating EN instead"
+            )
+            track = translate_track(en_track, source_lang="en")
+
+    # ── Translate existing English .srt ──────────────────────────────────────
+    elif english_srt:
+        print(f"Using SRT: {english_srt}")
         print("    → Translating to French (timings preserved)…")
-        track = read_srt(existing_srt)
+        track = read_srt(english_srt)
         track = translate_track(track, source_lang="en")
-        # Clean up extracted subtitle file
-        if embedded_srt_path and embedded_srt_path.exists():
-            embedded_srt_path.unlink()
+
+    # ── Full Whisper pipeline ────────────────────────────────────────────────
     else:
-        # ── Full Whisper pipeline ────────────────────────────────────────────
         print("No SRT found (external or embedded) — running Whisper transcription…")
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
@@ -220,11 +257,16 @@ def _run_from_mkv(args: argparse.Namespace, output_path: Path) -> None:
 
         track = translate_track(track, source_lang=args.language or "auto")
 
+    # ── Cleanup embedded extraction ──────────────────────────────────────────
+    if embedded_srt_path and embedded_srt_path.exists():
+        embedded_srt_path.unlink()
+
     # ── Sync check (on by default) ──────────────────────────────────────────
     if args.sync_check:
         check_sync(track, video_duration)
 
     write_srt(track, output_path)
+    return True
 
 
 def _transcribe(args: argparse.Namespace, wav_path: Path) -> SubtitleTrack:
@@ -243,7 +285,8 @@ def _run_single(args: argparse.Namespace) -> None:
     if args.from_srt:
         _run_from_srt(args, output_path)
     else:
-        _run_from_mkv(args, output_path)
+        if not _run_from_mkv(args, output_path):
+            return
 
     print(f"\nDone! Output → {output_path}\n")
 

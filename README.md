@@ -6,30 +6,28 @@
 
 ## Features
 
-- **Smart pipeline** — automatically detects an existing English `.srt` next to the MKV; if found, translates it directly (faster); otherwise runs full Whisper transcription
+- **Smart pipeline** — detects existing English and French subtitles, chooses the best strategy automatically (resync, translate, or transcribe)
+- **Auto-resync** — if a French `.srt` and an English `.srt` both exist with matching entry counts, aligns the French timestamps to the English ones (no translation needed)
 - **Automatic translation** to French via `deep-translator` (free, no API key)
+- **Batch processing** — `--scan` processes an entire directory of MKV files recursively
 - **SRT-only mode** — translate an existing `.srt` file while preserving all timings exactly
 - **Sync checker** — runs by default; detects overlaps, negative durations, empty entries, and out-of-bounds subtitles
 - **Auto language detection** — Whisper detects the audio language when no `.srt` is available
-- **Configurable** — choose Whisper model size, force source language, skip translation, and more
+- **Configurable** — choose Whisper model size, force source language, and more
 
 ---
 
 ## Installation
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yourname/mkv2srt.git
-cd mkv2srt
-
-# 2. Create and activate a virtual environment (recommended)
+# 1. Create and activate a virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 
-# 3. Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 4. (Optional) install as a CLI command
+# 3. (Optional) install as a CLI command
 pip install -e .
 ```
 
@@ -46,10 +44,14 @@ mkv2srt movie.mkv
 
 What happens under the hood:
 
-1. **Looks for an existing `.srt`** next to the MKV (`movie.en.srt`, `movie.eng.srt`, `movie.english.srt`, or `movie.srt`)
-2. **If found** → translates it to French, keeping all timings intact (fast, no Whisper needed)
-3. **If not found** → extracts audio, runs Whisper (medium model, auto language detection), translates to French
-4. **Sync check** runs automatically at the end
+1. **Looks for an existing French `.srt`** next to the MKV (`movie.fr.srt`, `movie.fre.srt`, `movie.french.srt`)
+2. **Looks for an existing English `.srt`** next to the MKV (`movie.en.srt`, `movie.eng.srt`, `movie.english.srt`, `movie.srt`) or embedded in the MKV
+3. **If both exist with the same number of entries** → applies English timestamps to the French text (resync, no translation needed)
+4. **If both exist but entry counts differ** → translates the English `.srt` to French instead
+5. **If only English exists** → translates it to French, keeping all timings intact
+6. **If neither exists** → extracts audio, runs Whisper (medium model, auto language detection), translates to French
+7. **If already aligned** → skips the file entirely (nothing to do)
+8. **Sync check** runs automatically at the end
 
 ### Force source language (faster, skips auto-detection)
 
@@ -85,7 +87,7 @@ mkv2srt --scan /mnt/my_series
 mkv2srt --scan
 ```
 
-Each MKV is processed with the standard pipeline (existing SRT → translate, or Whisper → translate). Progress is displayed as `[1/N]`, `[2/N]`, etc. Files that fail are reported at the end without stopping the batch.
+Each MKV is processed with the full smart pipeline (resync → translate → transcribe). Progress is displayed as `[1/N]`, `[2/N]`, etc. Files that fail are reported at the end without stopping the batch. Already-aligned files are skipped automatically.
 
 ### Custom output path
 
@@ -139,7 +141,6 @@ The sync check runs by default and will catch any timing anomalies in the final 
 ## Running the tests
 
 ```bash
-pip install pytest
 pytest
 ```
 
