@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -158,7 +159,43 @@ def _resolve_output(args: argparse.Namespace) -> Path:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _log_progress(done: int, total: int) -> None:
-    print(f"  Translating… {done}/{total}", end="\r")
+    sys.stderr.write(f"\r  Translating… {done}/{total}   ")
+    sys.stderr.flush()
+    if done >= total:
+        sys.stderr.write("\n")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scan-mode logging (per-worker buffering)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_output_lock = threading.Lock()
+
+
+class _ScanHandler(logging.Handler):
+    """Buffers log records per thread and flushes them atomically to stderr."""
+
+    def __init__(self):
+        super().__init__()
+        self._local = threading.local()
+
+    def emit(self, record):
+        buf = getattr(self._local, "buffer", None)
+        if buf is not None:
+            buf.append(self.format(record))
+        else:
+            sys.stderr.write(self.format(record) + "\n")
+
+    def start_capture(self):
+        self._local.buffer = []
+
+    def flush_capture(self):
+        lines = getattr(self._local, "buffer", [])
+        self._local.buffer = None
+        if lines:
+            with _output_lock:
+                sys.stderr.write("\n".join(lines) + "\n")
+                sys.stderr.flush()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -208,18 +245,35 @@ def _run_scan(args: argparse.Namespace) -> int:
 
     total = len(mkv_files)
     workers = min(args.workers, total)
+
+    scan_handler = _ScanHandler()
+    scan_handler.setFormatter(logging.Formatter("  %(message)s"))
+    logger.handlers.clear()
+    logger.addHandler(scan_handler)
+
     logger.info("Scanning %s — %d MKV file(s), %d worker(s)\n", scan_dir, total, workers)
 
     def _process(i: int, mkv: Path) -> tuple[Path, Exception | None]:
+        scan_handler.start_capture()
         file_args = argparse.Namespace(**vars(args))
         file_args.input = mkv
+        output_path = _resolve_output(file_args)
         logger.info("[%d/%d] %s", i, total, mkv.relative_to(scan_dir))
         try:
-            _run_single(file_args)
+            if run_from_mkv(
+                file_args.input, output_path,
+                target_lang=file_args.target,
+                model=file_args.model,
+                language=file_args.language,
+                sync_check=file_args.sync_check,
+            ):
+                logger.info("→ %s", output_path)
             return mkv, None
         except Exception as exc:
             logger.error("Error (%s): %s", mkv.name, exc)
             return mkv, exc
+        finally:
+            scan_handler.flush_capture()
 
     succeeded, failed = 0, 0
     with ThreadPoolExecutor(max_workers=workers) as pool:

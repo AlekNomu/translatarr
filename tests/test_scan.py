@@ -46,20 +46,21 @@ class TestRunScan:
 
         processed = []
 
-        def fake_run_single(args):
-            processed.append(args.input)
+        def fake_run(mkv_path, output_path, **kwargs):
+            processed.append(mkv_path)
+            return True
 
         args = _make_scan_args(tmp_path)
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         names = sorted(p.name for p in processed)
         assert names == ["a.mkv", "b.mkv"]
 
     def test_no_mkv_files(self, tmp_path):
-        """--scan on an empty dir should not call _run_single."""
+        """--scan on an empty dir should not call run_from_mkv."""
         args = _make_scan_args(tmp_path)
-        with patch("mkv2srt.cli._run_single") as mock:
+        with patch("mkv2srt.cli.run_from_mkv") as mock:
             _run_scan(args)
         mock.assert_not_called()
 
@@ -71,11 +72,12 @@ class TestRunScan:
 
         processed = []
 
-        def fake_run_single(args):
-            processed.append(args.input)
+        def fake_run(mkv_path, output_path, **kwargs):
+            processed.append(mkv_path)
+            return True
 
         args = _make_scan_args(tmp_path)
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert len(processed) == 1
@@ -89,14 +91,15 @@ class TestRunScan:
 
         call_count = 0
 
-        def fail_on_second(args):
+        def fail_on_second(mkv_path, output_path, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count == 2:
                 raise RuntimeError("simulated failure")
+            return True
 
         args = _make_scan_args(tmp_path)
-        with patch("mkv2srt.cli._run_single", side_effect=fail_on_second):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fail_on_second):
             _run_scan(args)
 
         assert call_count == 3
@@ -109,11 +112,12 @@ class TestRunScan:
 
         processed = []
 
-        def fake_run_single(args):
-            processed.append(args.input)
+        def fake_run(mkv_path, output_path, **kwargs):
+            processed.append(mkv_path)
+            return True
 
         args = _make_scan_args(tmp_path)
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert len(processed) == 1
@@ -134,7 +138,7 @@ class TestWorkers:
         lock = threading.Lock()
         active = 0
 
-        def fake_run_single(args):
+        def fake_run(mkv_path, output_path, **kwargs):
             nonlocal active, max_concurrent
             with lock:
                 active += 1
@@ -142,10 +146,11 @@ class TestWorkers:
             time.sleep(0.1)
             with lock:
                 active -= 1
+            return True
 
         args = _make_scan_args(tmp_path)
         args.workers = 4
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert max_concurrent > 1
@@ -158,14 +163,15 @@ class TestWorkers:
         seen_inputs = []
         lock = threading.Lock()
 
-        def fake_run_single(args):
+        def fake_run(mkv_path, output_path, **kwargs):
             time.sleep(0.05)
             with lock:
-                seen_inputs.append(args.input.name)
+                seen_inputs.append(mkv_path.name)
+            return True
 
         args = _make_scan_args(tmp_path)
         args.workers = 3
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert sorted(seen_inputs) == ["0.mkv", "1.mkv", "2.mkv"]
@@ -180,7 +186,7 @@ class TestWorkers:
         check_lock = threading.Lock()
         violation = False
 
-        def fake_run_single(args):
+        def fake_run(mkv_path, output_path, **kwargs):
             nonlocal lock_active, max_inside_lock, violation
             with _whisper_lock:
                 with check_lock:
@@ -191,10 +197,11 @@ class TestWorkers:
                 time.sleep(0.05)
                 with check_lock:
                     lock_active -= 1
+            return True
 
         args = _make_scan_args(tmp_path)
         args.workers = 4
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert not violation, "Multiple threads entered _whisper_lock simultaneously"
@@ -206,12 +213,13 @@ class TestWorkers:
 
         processed = []
 
-        def fake_run_single(args):
-            processed.append(args.input.name)
+        def fake_run(mkv_path, output_path, **kwargs):
+            processed.append(mkv_path.name)
+            return True
 
         args = _make_scan_args(tmp_path)
         args.workers = 8
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert processed == ["only.mkv"]
@@ -224,16 +232,17 @@ class TestWorkers:
         results = []
         lock = threading.Lock()
 
-        def fake_run_single(args):
-            if args.input.name == "1.mkv":
+        def fake_run(mkv_path, output_path, **kwargs):
+            if mkv_path.name == "1.mkv":
                 raise RuntimeError("boom")
             time.sleep(0.05)
             with lock:
-                results.append(args.input.name)
+                results.append(mkv_path.name)
+            return True
 
         args = _make_scan_args(tmp_path)
         args.workers = 4
-        with patch("mkv2srt.cli._run_single", side_effect=fake_run_single):
+        with patch("mkv2srt.cli.run_from_mkv", side_effect=fake_run):
             _run_scan(args)
 
         assert sorted(results) == ["0.mkv", "2.mkv", "3.mkv"]

@@ -198,7 +198,8 @@ def _translate_one_by_one(translator: _Translator, batch: list[str]) -> list[str
     parts: list[str] = []
     for text in batch:
         try:
-            parts.append(translator.translate(text))
+            result = translator.translate(text)
+            parts.append(result if result is not None else text)
         except Exception:
             parts.append(text)
         time.sleep(_FALLBACK_DELAY)
