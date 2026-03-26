@@ -3,8 +3,10 @@ mkv2srt.translator
 ~~~~~~~~~~~~~~~~~~
 Subtitle translation via Google Translate (deep-translator, no API key needed).
 
-Translation is performed in batches to reduce network round-trips while
-staying within Google Translate's per-request size limits.
+All subtitles are pre-processed (SDH skipped, tags stripped, multi-line joined,
+dialogues split) into flat single-line "translation units", then batch-translated
+in as few HTTP requests as possible, then reassembled with their original
+formatting.
 """
 
 from __future__ import annotations
@@ -12,28 +14,88 @@ from __future__ import annotations
 import re
 import sys
 import time
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from typing import Protocol
+
 from mkv2srt.models import Subtitle, SubtitleTrack
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Internal separator used to join/split batch texts.
-#: Unlikely to appear in real subtitle text.
 _SEP = " |||SEP||| "
-
-#: Default number of subtitles sent per translation request.
-_DEFAULT_BATCH_SIZE = 20
-
-#: Delay (seconds) between individual fallback requests.
+_DEFAULT_BATCH_SIZE = 40
 _FALLBACK_DELAY = 0.1
 
-#: Matches HTML/SRT formatting tags like <i>, </b>, <font color="#fff">
+# Matches any HTML/SRT tag (<i>, </b>, <font color="…">) — used to strip formatting before translation
 _TAG_PATTERN = re.compile(r"</?[a-zA-Z][^>]*>")
-
-#: Matches SDH/CC annotations: [music], (laughing), ♪ lyrics ♪
+# Same but anchored at end-of-string — lets _strip_tags peel trailing tags without touching mid-text ones
+_TRAILING_TAG_PATTERN = re.compile(r"</?[a-zA-Z][^>]*>\s*$")
+# Matches SDH/CC annotations ([music], (laughing), ♪…♪) — these are skipped, never sent to translation
 _SDH_PATTERN = re.compile(r"\[.*?\]|\(.*?\)|♪.*?♪", re.DOTALL)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Translator protocol
+# ─────────────────────────────────────────────────────────────────────────────
+
+class _Translator(Protocol):
+    def translate(self, text: str) -> str: ...
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pre-processing: subtitle → translation units
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass(slots=True)
+class _PreparedSub:
+    """A subtitle broken down into translatable units with reconstruction info."""
+    original: Subtitle
+    unit_texts: list[str]       # texts to send to Google Translate (empty = skip)
+    num_lines: int              # original line count (for re-wrapping)
+    is_dialogue: bool           # True → reassemble with "-" prefixes
+    tag_prefix: str             # HTML tags to restore before text
+    tag_suffix: str             # HTML tags to restore after text
+
+
+def _prepare(sub: Subtitle) -> _PreparedSub:
+    """Break a subtitle into flat, single-line translation units."""
+    text = sub.text
+
+    if _is_sdh(text):
+        return _PreparedSub(sub, [], 1, False, "", "")
+
+    clean, prefix, suffix = _strip_tags(text)
+    if not clean.strip():
+        return _PreparedSub(sub, [], 1, False, "", "")
+
+    lines = clean.split("\n")
+
+    if len(lines) > 1 and _is_dialogue(lines):
+        speeches = [
+            line.strip().lstrip("-").strip()
+            for line in lines
+            if line.strip().lstrip("-").strip()
+        ]
+        return _PreparedSub(sub, speeches, len(lines), True, prefix, suffix)
+
+    joined = " ".join(line.strip() for line in lines)
+    return _PreparedSub(sub, [joined], len(lines), False, prefix, suffix)
+
+
+def _reassemble(prep: _PreparedSub, translated: list[str]) -> str:
+    """Reconstruct the final subtitle text from translated units."""
+    if not prep.unit_texts:
+        return prep.original.text
+
+    if prep.is_dialogue:
+        text = "\n".join("-" + t for t in translated)
+    elif prep.num_lines > 1:
+        text = _rewrap(translated[0], prep.num_lines)
+    else:
+        text = translated[0]
+
+    return prep.tag_prefix + text + prep.tag_suffix
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -41,215 +103,135 @@ _SDH_PATTERN = re.compile(r"\[.*?\]|\(.*?\)|♪.*?♪", re.DOTALL)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def translate_track(
-    track:       SubtitleTrack,
+    track: SubtitleTrack,
     source_lang: str = "auto",
     target_lang: str = "fr",
-    batch_size:  int = _DEFAULT_BATCH_SIZE,
+    batch_size: int = _DEFAULT_BATCH_SIZE,
 ) -> SubtitleTrack:
-    """
-    Return a new :class:`~mkv2srt.models.SubtitleTrack` with all subtitle
-    texts translated to *target_lang*.
+    """Return a new :class:`SubtitleTrack` with every text translated.
 
-    Timings are preserved exactly — only the ``text`` field is modified.
-
-    :param track:       Source subtitle track.
-    :param source_lang: BCP-47 source language, or ``"auto"`` for detection.
-    :param target_lang: BCP-47 target language (default ``"fr"``).
-    :param batch_size:  Number of subtitles per translation request.
-    :raises SystemExit: If *deep-translator* is not installed.
+    Timings are preserved exactly — only the ``text`` field changes.
     """
     _require_deep_translator()
     from deep_translator import GoogleTranslator  # type: ignore
 
     translator = GoogleTranslator(source=source_lang, target=target_lang)
-    subtitles  = list(track)
-    total      = len(subtitles)
+    subtitles = list(track)
+    total = len(subtitles)
 
-    print(f"Translating {total} subtitles to '{target_lang}' ...")
+    # ── Phase 1: pre-process ───────────────────────────────────────────
+    prepared = [_prepare(sub) for sub in subtitles]
 
-    translated: list[Subtitle] = []
-    for start in range(0, total, batch_size):
-        batch = subtitles[start : start + batch_size]
-        parts = _translate_batch(translator, batch)
-        for sub, new_text in zip(batch, parts):
-            translated.append(replace(sub, text=new_text.strip()))
+    # Flat index mapping: each unit → (prep_index, unit_index_within_prep)
+    all_units: list[str] = []
+    unit_map: list[tuple[int, int]] = []
+    for prep_idx, prep in enumerate(prepared):
+        for unit_idx, text in enumerate(prep.unit_texts):
+            all_units.append(text)
+            unit_map.append((prep_idx, unit_idx))
 
-        done = min(start + batch_size, total)
-        print(f"    {done}/{total}", end="\r")
+    # ── Phase 2: batch translate ──────────────────────────────────────────
+    translated_units = _batch_translate_all(translator, all_units, batch_size, total)
+
+    # ── Phase 3: reassemble ──────────────────────────────────────────────
+    results_per_prep: list[list[str]] = [[] for _ in prepared]
+    for (prep_idx, _), translated_text in zip(unit_map, translated_units):
+        results_per_prep[prep_idx].append(translated_text)
+
+    translated_subs: list[Subtitle] = []
+    for prep, result_texts in zip(prepared, results_per_prep):
+        new_text = _reassemble(prep, result_texts)
+        translated_subs.append(replace(prep.original, text=new_text.strip()))
 
     print()
-    print(f"Translation complete — {total} subtitles.")
-    return SubtitleTrack(subtitles=translated)
+    return SubtitleTrack(subtitles=translated_subs)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Private helpers
+# Batch translation engine
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _require_deep_translator() -> None:
-    try:
-        import deep_translator  # noqa: F401
-    except ImportError:
-        sys.exit(
-            "'deep-translator' is not installed.\n"
-            "    Run: pip install deep-translator"
-        )
+def _batch_translate_all(
+    translator: _Translator,
+    units: list[str],
+    batch_size: int,
+    subtitle_count: int,
+) -> list[str]:
+    """Translate all units via batched requests, with fallback to one-by-one."""
+    if not units:
+        return []
+
+    results: list[str] = []
+    for start in range(0, len(units), batch_size):
+        batch = units[start : start + batch_size]
+        results.extend(_translate_batch(translator, batch))
+
+        # Progress based on subtitle count (not unit count) for user clarity
+        progress = min(len(results) * subtitle_count // max(len(units), 1), subtitle_count)
+        print(f"  Translating… {progress}/{subtitle_count}", end="\r")
+
+    return results
 
 
-def _translate_batch(translator, batch: list[Subtitle]) -> list[str]:
-    """
-    Translate a batch of subtitles in a single request.
-
-    Multi-line subtitle texts are joined into a single line before batching
-    so that Google Translate treats each entry as one coherent phrase.
-    After translation, results are re-wrapped to the original line count.
-
-    Falls back to one-by-one translation if the separator is not preserved
-    correctly in the response (can happen with very short texts or special
-    characters).
-    """
-    # Dialogues, multi-line texts, SDH annotations and HTML tags need
-    # special handling — route through one-by-one for correctness.
-    needs_special = any(
-        "\n" in sub.text
-        or _is_sdh(sub.text)
-        or _TAG_PATTERN.search(sub.text)
-        for sub in batch
-    )
-    if needs_special:
-        return _translate_one_by_one(translator, batch)
-
-    combined = _SEP.join(sub.text for sub in batch)
+def _translate_batch(translator: _Translator, batch: list[str]) -> list[str]:
+    """Translate a batch of pre-processed texts in one request."""
+    combined = _SEP.join(batch)
     try:
         result = translator.translate(combined)
-        parts  = result.split("|||SEP|||")
+        parts = result.split("|||SEP|||")
         if len(parts) == len(batch):
             return [part.strip() for part in parts]
-        # Mismatch: separator was mangled — fall through to per-sub mode
     except Exception:
         pass
 
     return _translate_one_by_one(translator, batch)
 
 
-def _translate_one_by_one(translator, batch: list[Subtitle]) -> list[str]:
-    """Translate each subtitle individually, preserving the original on error."""
+def _translate_one_by_one(translator: _Translator, batch: list[str]) -> list[str]:
+    """Fallback: translate each text individually."""
     parts: list[str] = []
-    for sub in batch:
+    for text in batch:
         try:
-            parts.append(_translate_single(translator, sub.text))
+            parts.append(translator.translate(text))
         except Exception:
-            # Keep original rather than losing the line
-            parts.append(sub.text)
+            parts.append(text)
         time.sleep(_FALLBACK_DELAY)
     return parts
 
 
-def _translate_single(translator, text: str) -> str:
-    """Translate a single subtitle text, handling SDH annotations and HTML tags."""
-    # SDH/CC annotations (e.g. [music], ♪ lyrics ♪) — keep as-is
-    if _is_sdh(text):
-        return text
-
-    # Strip HTML tags, translate clean text, restore tags
-    clean, prefix, suffix = _strip_tags(text)
-    if not clean.strip():
-        return text
-
-    translated = _translate_multiline(translator, clean)
-    return _restore_tags(translated, prefix, suffix)
-
-
-def _strip_tags(text: str) -> tuple[str, str, str]:
-    """Remove HTML tags from *text*.
-
-    Returns (clean_text, prefix_tags, suffix_tags) where prefix/suffix
-    contain the opening/closing tags that wrapped the text.
-
-    For example ``<i>Hello world</i>`` → ``("Hello world", "<i>", "</i>")``.
-    """
-    # Collect leading tags (opening)
-    prefix = ""
-    tmp = text
-    while True:
-        m = _TAG_PATTERN.match(tmp)
-        if not m:
-            break
-        prefix += m.group()
-        tmp = tmp[m.end():]
-
-    # Collect trailing tags (closing) from the end
-    suffix = ""
-    while True:
-        m = re.search(r"</?[a-zA-Z][^>]*>\s*$", tmp)
-        if not m:
-            break
-        suffix = m.group().strip() + suffix
-        tmp = tmp[:m.start()]
-
-    # Remove any remaining inline tags
-    clean = _TAG_PATTERN.sub("", tmp)
-    return clean, prefix, suffix
-
-
-def _restore_tags(text: str, prefix: str, suffix: str) -> str:
-    """Re-wrap translated text with its original HTML tags."""
-    return prefix + text + suffix
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Text pre-processing helpers
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _is_sdh(text: str) -> bool:
-    """Return True if the text is purely an SDH/CC annotation with no
-    actual dialogue (e.g. ``[music playing]``, ``♪ theme song ♪``)."""
+    """Return True if *text* is purely an SDH/CC annotation."""
     stripped = _SDH_PATTERN.sub("", text).strip()
     return len(stripped) == 0 and len(text.strip()) > 0
 
 
 def _is_dialogue(lines: list[str]) -> bool:
-    """Detect dialogue lines: all non-empty lines start with ``-``."""
+    """Return True if every non-empty line starts with ``-`` (dialogue)."""
     return all(line.strip().startswith("-") for line in lines if line.strip())
 
 
-def _translate_multiline(translator, text: str) -> str:
-    """Translate multi-line subtitle text, handling both dialogues and
-    wrapped sentences correctly.
+def _strip_tags(text: str) -> tuple[str, str, str]:
+    """Strip leading/trailing HTML tags from *text*.
 
-    **Dialogue** (each line starts with ``-``)::
-
-        -Yeah.
-        -Come on, buddy.
-
-    Each speaker's line is translated independently, preserving the ``-``
-    prefix and the line structure.
-
-    **Wrapped sentence** (no ``-`` prefix)::
-
-        Can we just
-        leave, please?
-
-    Lines are joined into a single phrase, translated as one unit, then
-    re-wrapped to the original number of lines.
+    Returns ``(clean_text, prefix_tags, suffix_tags)``.
     """
-    lines = text.split("\n")
-    if len(lines) <= 1:
-        return translator.translate(text)
+    prefix = ""
+    tmp = text
+    while (tag_match := _TAG_PATTERN.match(tmp)):
+        prefix += tag_match.group()
+        tmp = tmp[tag_match.end():]
 
-    # Dialogue: translate each speaker's line independently
-    if _is_dialogue(lines):
-        translated_lines: list[str] = []
-        for line in lines:
-            stripped = line.strip()
-            # Remove the leading dash, translate, then re-add it
-            speech = stripped.lstrip("-").strip()
-            if speech:
-                translated_lines.append("-" + translator.translate(speech))
-            else:
-                translated_lines.append(stripped)
-        return "\n".join(translated_lines)
+    suffix = ""
+    while (tag_match := _TRAILING_TAG_PATTERN.search(tmp)):
+        suffix = tag_match.group().strip() + suffix
+        tmp = tmp[:tag_match.start()]
 
-    # Wrapped sentence: join, translate as one, re-wrap
-    joined = " ".join(line.strip() for line in lines)
-    translated = translator.translate(joined)
-    return _rewrap(translated, len(lines))
+    clean = _TAG_PATTERN.sub("", tmp)
+    return clean, prefix, suffix
 
 
 def _rewrap(text: str, num_lines: int) -> str:
@@ -267,3 +249,17 @@ def _rewrap(text: str, num_lines: int) -> str:
         lines.append(" ".join(words[idx : idx + count]))
         idx += count
     return "\n".join(lines)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dependency check
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _require_deep_translator() -> None:
+    try:
+        import deep_translator  # noqa: F401
+    except ImportError:
+        sys.exit(
+            "'deep-translator' is not installed.\n"
+            "    Run: pip install deep-translator"
+        )

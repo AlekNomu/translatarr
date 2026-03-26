@@ -69,23 +69,19 @@ def extract_audio(video_path: Path, wav_path: Path) -> None:
     :param wav_path:   Destination WAV file.
     :raises SystemExit: If ffmpeg exits with a non-zero return code.
     """
-    print(f"Extracting audio  {video_path.name} → {wav_path.name}")
-
     cmd = [
         "ffmpeg", "-y",
-        "-i",      str(video_path),
+        "-i", str(video_path),
         "-vn",                       # drop video stream
         "-acodec", "pcm_s16le",      # 16-bit PCM
-        "-ar",     WHISPER_SAMPLE_RATE,
-        "-ac",     "1",              # mono
+        "-ar", WHISPER_SAMPLE_RATE,
+        "-ac", "1",                  # mono
         str(wav_path),
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         sys.exit(f"ffmpeg failed:\n{result.stderr}")
-
-    print("Audio extracted successfully.")
 
 def find_embedded_sub_index(video_path: Path) -> int | None:
     """Return the stream index of the best English subtitle track, or *None*.
@@ -119,20 +115,16 @@ def find_embedded_sub_index(video_path: Path) -> int | None:
     if not text_streams:
         return None
 
-    # Try to find an English track
     for s in text_streams:
         lang = s.get("tags", {}).get("language", "").lower()
         if lang in ("en", "eng", "english"):
             return s["index"]
 
-    # Fallback: first text subtitle track
     return text_streams[0]["index"]
 
 
 def extract_subtitle(video_path: Path, stream_index: int, srt_path: Path) -> None:
     """Extract a subtitle stream from *video_path* to an SRT file."""
-    print(f"Extracting embedded subtitle (stream #{stream_index}) → {srt_path.name}")
-
     cmd = [
         "ffmpeg", "-y",
         "-i", str(video_path),

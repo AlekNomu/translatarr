@@ -14,16 +14,11 @@ SECONDS_PER_MINUTE = 60
 MS_PER_SECOND = 1000
 MIN_SRT_BLOCK_LINES = 3
 
-# Matches SRT timecodes: "HH:MM:SS,mmm --> HH:MM:SS,mmm"
-# Accepts both comma and dot as ms separator (e.g. 00:01:23,456 or 00:01:23.456)
+# Accepts both comma and dot as ms separator (SRT uses comma, some tools use dot)
 _SRT_TIME_PATTERN = re.compile(
     r"(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})"
 )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Time helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 def srt_time_to_seconds(timestamp: str) -> float:
     """Convert an SRT timestamp (``HH:MM:SS,mmm``) to seconds (float)."""
@@ -42,10 +37,6 @@ def seconds_to_srt_time(seconds: float) -> str:
     s  = s % SECONDS_PER_MINUTE
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Subtitle
-# ─────────────────────────────────────────────────────────────────────────────
 
 @dataclass
 class Subtitle:
@@ -87,17 +78,11 @@ class Subtitle:
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SubtitleTrack
-# ─────────────────────────────────────────────────────────────────────────────
-
 @dataclass
 class SubtitleTrack:
     """An ordered collection of :class:`Subtitle` entries."""
 
     subtitles: list[Subtitle] = field(default_factory=list)
-
-    # ── Constructors ────────────────────────────────────────────────────────
 
     @classmethod
     def from_whisper_segments(cls, segments: list[dict]) -> "SubtitleTrack":

@@ -54,14 +54,12 @@ def check_sync(
     subtitles = list(track)
 
     for i, sub in enumerate(subtitles):
-        # ── Negative or zero duration ────────────────────────────────────────
         if sub.end <= sub.start:
             issues.append(SyncIssue(
                 sub.index,
                 f"end ({sub.end_timestamp}) ≤ start ({sub.start_timestamp})",
             ))
 
-        # ── Overlap with next subtitle ───────────────────────────────────────
         if i + 1 < len(subtitles):
             nxt = subtitles[i + 1]
             if sub.end > nxt.start + OVERLAP_TOLERANCE:
@@ -71,18 +69,14 @@ def check_sync(
                     f"({sub.end_timestamp} > {nxt.start_timestamp})",
                 ))
 
-        # ── Unusually long display time ──────────────────────────────────────
         if sub.duration > MAX_DISPLAY_DURATION:
             issues.append(SyncIssue(
                 sub.index,
                 f"unusually long display duration ({sub.duration:.1f}s)",
             ))
 
-        # ── Empty text ───────────────────────────────────────────────────────
         if not sub.text.strip():
             issues.append(SyncIssue(sub.index, "empty text"))
-
-    # ── Last subtitle beyond video end ───────────────────────────────────────
     if video_duration is not None and subtitles:
         last = subtitles[-1]
         if last.end > video_duration + END_OF_VIDEO_TOLERANCE:
@@ -91,15 +85,5 @@ def check_sync(
                 f"ends at {last.end_timestamp}, beyond video duration "
                 f"({seconds_to_srt_time(video_duration)})",
             ))
-
-    print("\nSynchronisation check")
-    print("─" * 40)
-    if not issues:
-        print("  No issues found.")
-    else:
-        for issue in issues:
-            print(issue)
-        print(f"\n  {len(issues)} issue(s) detected — review the entries above.")
-    print()
 
     return issues

@@ -13,6 +13,7 @@ def _make_args(**overrides) -> argparse.Namespace:
         "input": None,
         "output": None,
         "from_srt": None,
+        "target": "fr",
     }
     defaults.update(overrides)
     return argparse.Namespace(**defaults)

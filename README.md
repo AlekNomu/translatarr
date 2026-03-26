@@ -9,6 +9,7 @@
 - **Smart pipeline** — detects existing English and French subtitles, chooses the best strategy automatically (resync, translate, or transcribe)
 - **Auto-resync** — if a French `.srt` and an English `.srt` both exist with matching entry counts, aligns the French timestamps to the English ones (no translation needed)
 - **Automatic translation** to French via `deep-translator` (free, no API key)
+- **Smart subtitle handling** — multi-line subtitles are joined before translation for natural phrasing, dialogues (`-Speaker`) are translated independently then reassembled, HTML tags (`<i>`, `<font>`) are preserved, and SDH annotations (`[music]`, `(laughing)`, `♪…♪`) are skipped
 - **Batch processing** — `--scan` processes an entire directory of MKV files recursively
 - **SRT-only mode** — translate an existing `.srt` file while preserving all timings exactly
 - **Sync checker** — runs by default; detects overlaps, negative durations, empty entries, and out-of-bounds subtitles
@@ -22,7 +23,7 @@
 ```bash
 # 1. Create and activate a virtual environment (recommended)
 python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -35,11 +36,18 @@ pip install -e .
 
 ## Usage
 
-### Default workflow — MKV → French subtitles
+### Default workflow — MKV → French subtitles (default)
 
 ```bash
 mkv2srt movie.mkv
 # Output: movie.fr.srt
+```
+
+### Translate to another language
+
+```bash
+mkv2srt movie.mkv --target es
+# Output: movie.es.srt
 ```
 
 What happens under the hood:
@@ -102,7 +110,8 @@ mkv2srt movie.mkv -o /subtitles/my_movie.fr.srt
 | Flag | Default | Description |
 |---|---|---|
 | `INPUT.mkv` | — | Source video file |
-| `-o / --output` | `<input>.fr.srt` | Output `.srt` file path |
+| `-o / --output` | `<input>.<target>.srt` | Output `.srt` file path |
+| `-t / --target` | `fr` | Target language code (`fr`, `es`, `de`, …) |
 | `--model` | `medium` | Whisper model: `tiny`, `base`, `small`, `medium`, `large` |
 | `--language` | auto | Audio language code (`en`, `de`, `es`, …) |
 | `--from-srt FILE` | — | Translate an existing `.srt` (timings untouched) |

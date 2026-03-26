@@ -21,11 +21,8 @@ def read_srt(path: Path) -> SubtitleTrack:
     :param path: Path to the ``.srt`` file.
     :raises FileNotFoundError: If *path* does not exist.
     """
-    # strips BOM if present
-    raw   = path.read_text(encoding="utf-8-sig")   
-    track = SubtitleTrack.from_srt_text(raw)
-    print(f"Loaded {len(track)} subtitles from '{path.name}'.")
-    return track
+    raw = path.read_text(encoding="utf-8-sig")
+    return SubtitleTrack.from_srt_text(raw)
 
 
 def write_srt(track: SubtitleTrack, path: Path) -> None:
@@ -38,4 +35,3 @@ def write_srt(track: SubtitleTrack, path: Path) -> None:
     :param path:  Destination file path.
     """
     path.write_text(track.to_srt(), encoding="utf-8")
-    print(f"Saved {len(track)} subtitles → '{path}'.")
