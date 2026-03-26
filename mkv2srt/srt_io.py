@@ -6,6 +6,8 @@ Read and write ``.srt`` subtitle files.
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from mkv2srt.models import SubtitleTrack

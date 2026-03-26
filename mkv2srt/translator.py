@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Protocol
 
@@ -107,10 +108,12 @@ def translate_track(
     source_lang: str = "auto",
     target_lang: str = "fr",
     batch_size: int = _DEFAULT_BATCH_SIZE,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> SubtitleTrack:
     """Return a new :class:`SubtitleTrack` with every text translated.
 
     Timings are preserved exactly — only the ``text`` field changes.
+    *on_progress(done, total)* is called after each batch if provided.
     """
     _require_deep_translator()
     from deep_translator import GoogleTranslator  # type: ignore
@@ -131,7 +134,9 @@ def translate_track(
             unit_map.append((prep_idx, unit_idx))
 
     # ── Phase 2: batch translate ──────────────────────────────────────────
-    translated_units = _batch_translate_all(translator, all_units, batch_size, total)
+    translated_units = _batch_translate_all(
+        translator, all_units, batch_size, total, on_progress,
+    )
 
     # ── Phase 3: reassemble ──────────────────────────────────────────────
     results_per_prep: list[list[str]] = [[] for _ in prepared]
@@ -143,7 +148,6 @@ def translate_track(
         new_text = _reassemble(prep, result_texts)
         translated_subs.append(replace(prep.original, text=new_text.strip()))
 
-    print()
     return SubtitleTrack(subtitles=translated_subs)
 
 
@@ -156,6 +160,7 @@ def _batch_translate_all(
     units: list[str],
     batch_size: int,
     subtitle_count: int,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> list[str]:
     """Translate all units via batched requests, with fallback to one-by-one."""
     if not units:
@@ -166,9 +171,10 @@ def _batch_translate_all(
         batch = units[start : start + batch_size]
         results.extend(_translate_batch(translator, batch))
 
-        # Progress based on subtitle count (not unit count) for user clarity
-        progress = min(len(results) * subtitle_count // max(len(units), 1), subtitle_count)
-        print(f"  Translating… {progress}/{subtitle_count}", end="\r")
+        if on_progress:
+            # Progress based on subtitle count (not unit count) for user clarity
+            progress = min(len(results) * subtitle_count // max(len(units), 1), subtitle_count)
+            on_progress(progress, subtitle_count)
 
     return results
 

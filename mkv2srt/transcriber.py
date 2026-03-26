@@ -6,6 +6,8 @@ Speech-to-text transcription using OpenAI Whisper.
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from mkv2srt.models import SubtitleTrack

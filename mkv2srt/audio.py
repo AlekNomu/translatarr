@@ -6,6 +6,8 @@ Audio and subtitle extraction from MKV (and other video) files via ffmpeg.
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 import json
 import subprocess
 import sys

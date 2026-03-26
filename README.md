@@ -25,10 +25,7 @@
 python -m venv .venv
 source .venv/bin/activate
 
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. (Optional) install as a CLI command
+# 2. install as a CLI command
 pip install -e .
 ```
 
@@ -95,7 +92,7 @@ mkv2srt --scan /mnt/my_series
 mkv2srt --scan
 ```
 
-Each MKV is processed with the full smart pipeline (resync → translate → transcribe). Progress is displayed as `[1/N]`, `[2/N]`, etc. Files that fail are reported at the end without stopping the batch. Already-aligned files are skipped automatically.
+Each MKV is processed with the full smart pipeline (resync → translate → transcribe). Files are processed in parallel (4 workers by default, configurable with `--workers`). Whisper transcription is serialized (one at a time) to avoid GPU memory issues, while ffmpeg extraction and translation run concurrently. Files that fail are reported at the end without stopping the batch. Already-aligned files are skipped automatically.
 
 ### Custom output path
 
@@ -117,6 +114,7 @@ mkv2srt movie.mkv -o /subtitles/my_movie.fr.srt
 | `--from-srt FILE` | — | Translate an existing `.srt` (timings untouched) |
 | `--no-sync-check` | off | Disable timing validation (on by default) |
 | `--scan [DIR]` | — | Scan a directory recursively for MKV files (defaults to `.`) |
+| `--workers N` | `4` | Number of parallel workers for `--scan` (Whisper stays serialized) |
 | `--version` | — | Show version and exit |
 
 ---
