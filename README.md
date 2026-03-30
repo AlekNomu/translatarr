@@ -1,155 +1,149 @@
-# mkv2srt
+# Translatarr
 
-> Generate French subtitles (`.srt`) from MKV files using **OpenAI Whisper** for transcription and **Google Translate** for translation — no API key required.
+> Automatic subtitle generation for your media library — transcription via **OpenAI Whisper**, translation via **Google Translate**, no API key required.
 
----
-
-## Features
-
-- **Smart pipeline** — detects existing English and French subtitles, chooses the best strategy automatically (resync, translate, or transcribe)
-- **Auto-resync** — if a French `.srt` and an English `.srt` both exist with matching entry counts, aligns the French timestamps to the English ones (no translation needed)
-- **Automatic translation** to French via `deep-translator` (free, no API key)
-- **Smart subtitle handling** — multi-line subtitles are joined before translation for natural phrasing, dialogues (`-Speaker`) are translated independently then reassembled, HTML tags (`<i>`, `<font>`) are preserved, and SDH annotations (`[music]`, `(laughing)`, `♪…♪`) are skipped
-- **Batch processing** — `--scan` processes an entire directory of MKV files recursively
-- **SRT-only mode** — translate an existing `.srt` file while preserving all timings exactly
-- **Sync checker** — runs by default; detects overlaps, negative durations, empty entries, and out-of-bounds subtitles
-- **Auto language detection** — Whisper detects the audio language when no `.srt` is available
-- **Configurable** — choose Whisper model size, force source language, and more
+Translatarr is a self-hosted web application that scans your movie and TV series directories and shows you which subtitles are missing. Generation is always **on demand**, you decide when to trigger it, per episode, per season, or per series. Generated `.srt` files are written directly alongside your media files and picked up automatically by **Jellyfin** and **Plex**.
 
 ---
 
-## Installation
+# Status
+
+[![GitHub stars](https://img.shields.io/github/stars/AlekNomu/translatarr?style=flat-square)](https://github.com/AlekNomu/translatarr/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/AlekNomu/translatarr?style=flat-square)](https://github.com/AlekNomu/translatarr/issues)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/AlekNomu/translatarr?style=flat-square)](https://hub.docker.com/r/AlekNomu/translatarr)
+
+---
+
+# Support
+
+- Report bugs and request features on [GitHub Issues](https://github.com/AlekNomu/translatarr/issues)
+
+---
+
+## Major Features Include
+
+- **Smart pipeline** — detects existing English and target-language subtitles and picks the best strategy automatically: resync, translate, or transcribe from audio
+- **Auto-resync** — if a translated `.srt` and a source `.srt` both exist with matching entry counts, Translatarr realigns the translated timestamps without re-translating anything
+- **Automatic translation** via `deep-translator` (free Google Translate, no API key required)
+- **Smart subtitle handling** — multi-line entries joined before translation, dialogue lines (`- Speaker`) translated independently and reassembled, HTML tags (`<i>`, `<font>`) preserved, SDH annotations (`[music]`, `(laughing)`, `♪…♪`) skipped
+- **Whisper transcription** — when no source subtitle exists, extracts audio with ffmpeg and transcribes with Whisper (auto language detection)
+- **Sync validator** — detects overlaps, negative durations, empty entries, and out-of-bounds subtitles after generation
+- **Configurable** — choose Whisper model size, source language, target language, sync check on/off
+- **Web UI** — manage movies and TV series, trigger generation per episode / season / series, view history and live logs
+- **Task queue** — subtitle generation runs in the background with progress tracking and cancellation support
+- **Scheduled scans** — periodic library scan to pick up newly added media automatically
+- **Delete subtitles** — remove a generated subtitle at any level (episode, season, full series, movie) and reset the database entry
+
+---
+
+## Screenshot
+
+
+
+---
+
+## Getting Started
+
+### Docker Run
 
 ```bash
-# 1. Create and activate a virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate
+docker run -d \
+  --name translatarr \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -e TZ=Europe/Paris \
+  -p 6868:6868 \
+  -v /path/to/config:/config \
+  -v /path/to/movies:/movies \
+  -v /path/to/tv:/tv \
+  --restart unless-stopped \
+  AlekNomu/translatarr:latest
+```
 
-# 2. install as a CLI command
-pip install -e .
+The web interface is then available at `http://your-server-ip:6868`.
+
+> **Port note:** Translatarr listens internally on **6868**.
+
+---
+
+### Docker Compose
+
+```yaml
+services:
+  translatarr:
+    image: AlekNomu/translatarr:latest
+    container_name: translatarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - ./config:/config
+      - /path/to/movies:/movies
+      - /path/to/tv:/tv
+    ports:
+      - "6868:6868"
+    restart: unless-stopped
+```
+
+### Manual installation
+
+```bash
+# Requires Python 3.10+ and ffmpeg installed
+git clone https://github.com/AlekNomu/translatarr.git
+cd translatarr
+uv sync          # or: pip install -e .
+
+translatarr      # starts on http://localhost:6868
+```
+
+Options:
+
+```bash
+translatarr --port 6868 --host 0.0.0.0 --config-dir /data/config
 ```
 
 ---
 
-## Usage
+## Configuration
 
-### Default workflow — MKV → French subtitles (default)
+After starting, open the web UI and go to **Settings → General**:
 
-```bash
-mkv2srt movie.mkv
-# Output: movie.fr.srt
-```
-
-### Translate to another language
-
-```bash
-mkv2srt movie.mkv --target es
-# Output: movie.es.srt
-```
-
-What happens under the hood:
-
-1. **Looks for an existing French `.srt`** next to the MKV (`movie.fr.srt`, `movie.fre.srt`, `movie.french.srt`)
-2. **Looks for an existing English `.srt`** next to the MKV (`movie.en.srt`, `movie.eng.srt`, `movie.english.srt`, `movie.srt`) or embedded in the MKV
-3. **If both exist with the same number of entries** → applies English timestamps to the French text (resync, no translation needed)
-4. **If both exist but entry counts differ** → translates the English `.srt` to French instead
-5. **If only English exists** → translates it to French, keeping all timings intact
-6. **If neither exists** → extracts audio, runs Whisper (medium model, auto language detection), translates to French
-7. **If already aligned** → skips the file entirely (nothing to do)
-8. **Sync check** runs automatically at the end
-
-### Force source language (faster, skips auto-detection)
-
-```bash
-mkv2srt movie.mkv --language en
-```
-
-### Use a more accurate Whisper model
-
-```bash
-mkv2srt movie.mkv --model large
-```
-
-### Translate an existing English `.srt` (timings preserved)
-
-```bash
-mkv2srt --from-srt movie.en.srt -o movie.fr.srt
-```
-
-### Disable sync validation
-
-```bash
-mkv2srt movie.mkv --no-sync-check
-```
-
-### Process an entire directory
-
-```bash
-# Scan a directory recursively for all MKV files
-mkv2srt --scan /mnt/my_series
-
-# Scan the current directory
-mkv2srt --scan
-```
-
-Each MKV is processed with the full smart pipeline (resync → translate → transcribe). Files are processed in parallel (4 workers by default, configurable with `--workers`). Whisper transcription is serialized (one at a time) to avoid GPU memory issues, while ffmpeg extraction and translation run concurrently. Files that fail are reported at the end without stopping the batch. Already-aligned files are skipped automatically.
-
-### Custom output path
-
-```bash
-mkv2srt movie.mkv -o /subtitles/my_movie.fr.srt
-```
-
----
-
-## Options
-
-| Flag | Default | Description |
+| Setting | Description | Default |
 |---|---|---|
-| `INPUT.mkv` | — | Source video file |
-| `-o / --output` | `<input>.<target>.srt` | Output `.srt` file path |
-| `-t / --target` | `fr` | Target language code (`fr`, `es`, `de`, …) |
-| `--model` | `medium` | Whisper model: `tiny`, `base`, `small`, `medium`, `large` |
-| `--language` | auto | Audio language code (`en`, `de`, `es`, …) |
-| `--from-srt FILE` | — | Translate an existing `.srt` (timings untouched) |
-| `--no-sync-check` | off | Disable timing validation (on by default) |
-| `--scan [DIR]` | — | Scan a directory recursively for MKV files (defaults to `.`) |
-| `--workers N` | `4` | Number of parallel workers for `--scan` (Whisper stays serialized) |
-| `--version` | — | Show version and exit |
+| Movies path | Directory containing your movie `.mkv` files | `/movies` |
+| Series path | Directory containing your TV series `.mkv` files | `/tv` |
+| Target language | Subtitle output language (ISO 639-1 code) | `fr` |
+| Whisper model | Transcription model size (see table below) | `medium` |
+| Source language | Force audio language, skip auto-detection | auto |
+| Sync check | Validate subtitle timing after generation | enabled |
 
----
+### Whisper model comparison
 
-## Whisper model comparison
-
-| Model | Speed | Accuracy | RAM |
+| Model | Speed | Accuracy | VRAM |
 |---|---|---|---|
-| `tiny` | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB |
-| `base` | ⚡⚡⚡ | ★★☆☆☆ | ~1 GB |
-| `small` | ⚡⚡ | ★★★☆☆ | ~2 GB |
-| `medium` | ⚡ | ★★★★☆ | ~5 GB |
-| `large` | 🐢 | ★★★★★ | ~10 GB |
+| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB |
+| `base`   | ⚡⚡⚡  | ★★☆☆☆ | ~1 GB |
+| `small`  | ⚡⚡   | ★★★☆☆ | ~2 GB |
+| `medium` | ⚡    | ★★★★☆ | ~5 GB |
+| `large`  | 🐢   | ★★★★★ | ~10 GB |
 
-`medium` is the recommended default. Use `large` for professional results on longer or noisy content.
-
----
-
-## How sync accuracy works
-
-Whisper produces **millisecond-precise timestamps** from the audio waveform directly — there is no drift by design. The main causes of sync issues are:
-
-1. **Silent intro / black screen** — if the video has a long silence before dialogue, Whisper may shift its internal clock. Passing `--language en` (or the correct language) avoids the silence-detection phase.
-2. **Multiple audio tracks** — ffmpeg picks the first track by default. If your MKV has a commentary track listed first, the transcription will be wrong. Use ffprobe to inspect tracks if needed.
-3. **Variable-frame-rate (VFR) video** — rare, but can cause drift over long files. Re-mux with ffmpeg first: `ffmpeg -i input.mkv -c copy -video_track_timescale 90000 fixed.mkv`.
-
-The sync check runs by default and will catch any timing anomalies in the final `.srt`. Use `--no-sync-check` to disable it.
+`medium` is the recommended default. Use `large` for professional results on noisy or multi-speaker content.
 
 ---
 
-## Running the tests
+## How it works
 
-```bash
-pytest
-```
+When Translatarr processes an MKV file, it follows this priority order:
+
+1. **Looks for existing target-language `.srt`** (e.g. `.fr.srt`, `.fre.srt`, `.french.srt`)
+2. **Looks for existing source-language `.srt`** (e.g. `.en.srt`, `.eng.srt`, `.srt`) or embedded subtitle track in the MKV
+3. **Both exist, same entry count, already aligned** → skip (nothing to do)
+4. **Both exist, same entry count, different timestamps** → resync: apply source timestamps to translated text (no translation)
+5. **Both exist but different entry counts** → translate source to target language
+6. **Only source exists** → translate to target language, preserve all timings
+7. **Neither exists** → extract audio with ffmpeg → transcribe with Whisper → translate to target language
 
 ---
 
