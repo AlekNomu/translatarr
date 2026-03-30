@@ -12,7 +12,7 @@ htmlcov/
 frontend/node_modules/
 frontend/dist/
 translatarr_web/static/
-docker/
+docker/Dockerfile
 tests/
 *.mkv
 *.mp4
