@@ -8,32 +8,33 @@ Translatarr is a self-hosted web application that scans your movie and TV series
 
 # Status
 
-[![GitHub stars](https://img.shields.io/github/stars/AlekNomu/translatarr?style=flat-square)](https://github.com/AlekNomu/translatarr/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/AlekNomu/translatarr?style=flat-square)](https://github.com/AlekNomu/translatarr/issues)
+[![GitHub stars](https://img.shields.io/github/stars/aleknomu/translatarr?style=flat-square)](https://github.com/aleknomu/translatarr/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/aleknomu/translatarr?style=flat-square)](https://github.com/aleknomu/translatarr/issues)
+[![CI](https://github.com/aleknomu/translatarr/actions/workflows/ci.yml/badge.svg)](https://github.com/aleknomu/translatarr/actions/workflows/ci.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/aleknomu/translatarr?style=flat-square)](https://hub.docker.com/r/aleknomu/translatarr)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/AlekNomu/translatarr?style=flat-square)](https://hub.docker.com/r/AlekNomu/translatarr)
 
 ---
 
 # Support
 
-- Report bugs and request features on [GitHub Issues](https://github.com/AlekNomu/translatarr/issues)
+- Report bugs and request features on [GitHub Issues](https://github.com/aleknomu/translatarr/issues)
 
 ---
 
 ## Major Features Include
 
-- **Smart pipeline** — detects existing English and target-language subtitles and picks the best strategy automatically: resync, translate, or transcribe from audio
-- **Auto-resync** — if a translated `.srt` and a source `.srt` both exist with matching entry counts, Translatarr realigns the translated timestamps without re-translating anything
+- **Smart pipeline**: detects existing English and target-language subtitles and picks the best strategy automatically: resync, translate, or transcribe from audio
+- **Auto-resync**: if a translated `.srt` and a source `.srt` both exist with matching entry counts, Translatarr realigns the translated timestamps without re-translating anything
 - **Automatic translation** via `deep-translator` (free Google Translate, no API key required)
-- **Smart subtitle handling** — multi-line entries joined before translation, dialogue lines (`- Speaker`) translated independently and reassembled, HTML tags (`<i>`, `<font>`) preserved, SDH annotations (`[music]`, `(laughing)`, `♪…♪`) skipped
-- **Whisper transcription** — when no source subtitle exists, extracts audio with ffmpeg and transcribes with Whisper (auto language detection)
-- **Sync validator** — detects overlaps, negative durations, empty entries, and out-of-bounds subtitles after generation
-- **Configurable** — choose Whisper model size, source language, target language, sync check on/off
-- **Web UI** — manage movies and TV series, trigger generation per episode / season / series, view history and live logs
-- **Task queue** — subtitle generation runs in the background with progress tracking and cancellation support
-- **Scheduled scans** — periodic library scan to pick up newly added media automatically
-- **Delete subtitles** — remove a generated subtitle at any level (episode, season, full series, movie) and reset the database entry
+- **Smart subtitle handling**: multi-line entries joined before translation, dialogue lines (`- Speaker`) translated independently and reassembled, HTML tags (`<i>`, `<font>`) preserved, SDH annotations (`[music]`, `(laughing)`, `♪…♪`) skipped
+- **Whisper transcription**: when no source subtitle exists, extracts audio with ffmpeg and transcribes with Whisper (auto language detection)
+- **Sync validator**: detects overlaps, negative durations, empty entries, and out-of-bounds subtitles after generation
+- **Configurable**: choose Whisper model size, source language, target language, sync check on/off
+- **Web UI**: manage movies and TV series, trigger generation per episode / season / series, view history and live logs
+- **Task queue**: subtitle generation runs in the background with progress tracking and cancellation support
+- **Scheduled scans**: periodic library scan to pick up newly added media automatically
+- **Delete subtitles**: remove a generated subtitle at any level (episode, season, full series, movie) and reset the database entry
 
 ---
 
@@ -58,7 +59,7 @@ docker run -d \
   -v /path/to/movies:/movies \
   -v /path/to/tv:/tv \
   --restart unless-stopped \
-  AlekNomu/translatarr:latest
+  aleknomu/translatarr:latest
 ```
 
 The web interface is then available at `http://your-server-ip:6868`.
@@ -72,7 +73,7 @@ The web interface is then available at `http://your-server-ip:6868`.
 ```yaml
 services:
   translatarr:
-    image: AlekNomu/translatarr:latest
+    image: aleknomu/translatarr:latest
     container_name: translatarr
     environment:
       - PUID=1000
@@ -91,7 +92,7 @@ services:
 
 ```bash
 # Requires Python 3.10+ and ffmpeg installed
-git clone https://github.com/AlekNomu/translatarr.git
+git clone https://github.com/aleknomu/translatarr.git
 cd translatarr
 uv sync          # or: pip install -e .
 

@@ -29,6 +29,12 @@ htmlcov/
 coverage.xml
 *.coveragerc
 
+# ── Linting cache ─────────────────────────────────────────────────────────────
+.ruff_cache/
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+*.egg-info/
+
 # ── Whisper model cache ───────────────────────────────────────────────────────
 # (large binary files — download on demand, do not commit)
 ~/.cache/whisper/
@@ -56,3 +62,24 @@ Thumbs.db
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
+
+# ── Frontend (Vue/Vite) ──────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+translatarr_web/static/
+
+# ── uv ────────────────────────────────────────────────────────────────────────
+# uv.lock IS committed (reproducible builds) — only ignore the cache
+.uv/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker/config/
+
+# ── Runtime config & database ─────────────────────────────────────────────────
+config/
+*.db
+*.db-shm
+*.db-wal
+
+# ── Generated subtitles (root-level test artefacts) ──────────────────────────
+subtitles_*.srt
