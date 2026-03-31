@@ -14,10 +14,10 @@
     <table v-if="items.length" class="table">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>File</th>
-          <th>Action</th>
-          <th>Detail</th>
+          <th>{{ lang.history.table.date }}</th>
+          <th>{{ lang.history.table.file }}</th>
+          <th>{{ lang.history.table.action }}</th>
+          <th>{{ lang.history.table.detail }}</th>
         </tr>
       </thead>
       <tbody>
@@ -27,19 +27,19 @@
           <td>
             <span :class="actionBadge(item.action)">{{ item.action }}</span>
           </td>
-          <td class="card__meta">{{ item.detail || "-" }}</td>
+          <td class="card__meta">{{ item.detail || lang.systemTasks.noValue }}</td>
         </tr>
       </tbody>
     </table>
 
     <div v-else class="empty-state">
-      <div class="empty-state__title">No history yet</div>
+      <div class="empty-state__title">{{ lang.history.empty }}</div>
     </div>
 
     <div v-if="total > perPage" class="pagination">
-      <button class="btn btn--ghost" :disabled="page <= 1" @click="page--; load()">Prev</button>
+      <button class="btn btn--ghost" :disabled="page <= 1" @click="page--; load()">{{ lang.history.prev }}</button>
       <span class="pagination__info">Page {{ page }} of {{ Math.ceil(total / perPage) }}</span>
-      <button class="btn btn--ghost" :disabled="page * perPage >= total" @click="page++; load()">Next</button>
+      <button class="btn btn--ghost" :disabled="page * perPage >= total" @click="page++; load()">{{ lang.history.next }}</button>
     </div>
   </div>
 </template>
@@ -47,6 +47,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { historyApi } from "@/api";
+import { lang } from "@/lang";
 
 interface HistoryItem {
   id: number;
@@ -67,10 +68,10 @@ const perPage = 50;
 const filter = ref("");
 
 const filters = [
-  { label: "All", value: "" },
-  { label: "Translated", value: "translated" },
-  { label: "Transcribed", value: "transcribed" },
-  { label: "Failed", value: "failed" },
+  { label: lang.history.filters.all, value: "" },
+  { label: lang.history.filters.translated, value: "translated" },
+  { label: lang.history.filters.transcribed, value: "transcribed" },
+  { label: lang.history.filters.failed, value: "failed" },
 ];
 
 function setFilter(f: string) {

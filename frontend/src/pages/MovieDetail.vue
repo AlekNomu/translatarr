@@ -6,18 +6,18 @@
     </div>
     <div style="margin-top: 16px; display: flex; gap: 12px; align-items: center">
       <span :class="movie.has_source_srt ? 'badge badge--success' : 'badge badge--danger'">
-        Source SRT: {{ movie.has_source_srt ? "Found" : "None" }}
+        {{ lang.movies.sourceSrt }} {{ movie.has_source_srt ? lang.badges.found : lang.badges.none }}
       </span>
       <span :class="movie.has_target_srt ? 'badge badge--success' : 'badge badge--warning'">
-        Target SRT: {{ movie.has_target_srt ? "Found" : "Missing" }}
+        {{ lang.movies.targetSrt }} {{ movie.has_target_srt ? lang.badges.found : lang.badges.missing }}
       </span>
     </div>
     <div style="margin-top: 16px; display: flex; gap: 8px">
       <button v-if="!movie.has_target_srt" class="btn btn--success" @click="generate">
-        Generate Subtitles
+        {{ lang.actions.generateSubtitles }}
       </button>
       <button v-if="movie.has_target_srt" class="btn btn--danger" @click="deleteSubtitle">
-        Delete Subtitle
+        {{ lang.actions.deleteSubtitle }}
       </button>
     </div>
   </div>
@@ -27,6 +27,7 @@
 import { ref, onMounted } from "vue";
 import { moviesApi } from "@/api";
 import type { Movie } from "@/stores/library";
+import { lang } from "@/lang";
 
 const props = defineProps<{ id: string }>();
 const movie = ref<Movie | null>(null);

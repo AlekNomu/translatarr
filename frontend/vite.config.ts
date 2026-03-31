@@ -9,7 +9,7 @@ export default defineConfig({
   },
   base: "/",
   build: {
-    outDir: "../translatarr_web/static",
+    outDir: "../backend/translatarr_web/static",
     emptyOutDir: true,
   },
   server: {
@@ -17,5 +17,9 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:6868",
     },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
   },
 });

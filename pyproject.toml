@@ -28,7 +28,7 @@ dev = [
 translatarr = "translatarr_web.translatarr:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["backend"]
 include = ["translatarr*", "translatarr_web*"]
 
 [tool.pytest.ini_options]

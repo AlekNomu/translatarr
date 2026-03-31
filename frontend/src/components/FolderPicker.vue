@@ -2,20 +2,20 @@
   <div class="fp-overlay" @click.self="$emit('cancel')">
     <div class="fp">
       <div class="fp__header">
-        <span class="fp__title">Select Folder</span>
+        <span class="fp__title">{{ lang.folderPicker.title }}</span>
         <button class="fp__close" @click="$emit('cancel')">&#x2715;</button>
       </div>
 
       <div class="fp__toolbar">
         <button class="btn btn--ghost" :disabled="parent === null" @click="navigate(parent!)">
-          &#x2191; Up
+          &#x2191; {{ lang.folderPicker.up }}
         </button>
-        <span class="fp__current">{{ current || "Root" }}</span>
+        <span class="fp__current">{{ current || lang.folderPicker.root }}</span>
       </div>
 
       <div class="fp__list">
-        <div v-if="loading" class="fp__status">Loading…</div>
-        <div v-else-if="dirs.length === 0" class="fp__status">No subdirectories</div>
+        <div v-if="loading" class="fp__status">{{ lang.folderPicker.loading }}</div>
+        <div v-else-if="dirs.length === 0" class="fp__status">{{ lang.folderPicker.noSubdirectories }}</div>
         <button
           v-for="dir in dirs"
           :key="dir.path"
@@ -30,9 +30,9 @@
       <div class="fp__footer">
         <span class="fp__selected">{{ current || "/" }}</span>
         <div style="display:flex; gap:8px">
-          <button class="btn btn--ghost" @click="$emit('cancel')">Cancel</button>
+          <button class="btn btn--ghost" @click="$emit('cancel')">{{ lang.folderPicker.cancel }}</button>
           <button class="btn btn--primary" :disabled="!current" @click="$emit('select', current)">
-            Select
+            {{ lang.folderPicker.select }}
           </button>
         </div>
       </div>
@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { lang } from "@/lang";
 
 const props = defineProps<{ initialPath?: string }>();
 const emit = defineEmits<{

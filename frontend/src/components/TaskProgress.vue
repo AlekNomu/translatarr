@@ -1,7 +1,7 @@
 <template>
   <div v-if="activeTasks.length" class="task-progress">
     <span class="badge badge--info">
-      {{ activeTasks.length }} task{{ activeTasks.length > 1 ? "s" : "" }} running
+      {{ activeTasks.length }} {{ activeTasks.length > 1 ? lang.systemTasks.tasks : lang.systemTasks.task }}
     </span>
   </div>
 </template>
@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useTasksStore } from "@/stores/tasks";
+import { lang } from "@/lang";
 
 const store = useTasksStore();
 

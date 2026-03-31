@@ -3,18 +3,18 @@
     <div class="card">
       <form @submit.prevent="save">
         <div class="form-group">
-          <label>Target Language</label>
+          <label>{{ lang.settings.targetLanguage }}</label>
           <select v-model="form.target_lang" class="form-select">
-            <option value="fr">French (fr)</option>
-            <option value="es">Spanish (es)</option>
-            <option value="de">German (de)</option>
-            <option value="it">Italian (it)</option>
-            <option value="pt">Portuguese (pt)</option>
+            <option value="fr">{{ lang.settings.languages.fr }}</option>
+            <option value="es">{{ lang.settings.languages.es }}</option>
+            <option value="de">{{ lang.settings.languages.de }}</option>
+            <option value="it">{{ lang.settings.languages.it }}</option>
+            <option value="pt">{{ lang.settings.languages.pt }}</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label>Whisper Model</label>
+          <label>{{ lang.settings.whisperModel }}</label>
           <select v-model="form.whisper_model" class="form-select">
             <option
               v-for="{ key, info } in sortedWhisperModels"
@@ -30,7 +30,7 @@
         </div>
 
         <div class="form-group">
-          <label>Concurrent Workers</label>
+          <label>{{ lang.settings.concurrentWorkers }}</label>
           <input
             v-model="form.workers"
             type="number"
@@ -39,33 +39,33 @@
             class="form-input"
             style="max-width: 120px"
           />
-          <div class="form-help">Requires a restart to take effect.</div>
+          <div class="form-help">{{ lang.settings.workersHelp }}</div>
         </div>
 
         <div class="form-group">
-          <label>Series Path</label>
+          <label>{{ lang.settings.seriesPath }}</label>
           <div class="path-input" @click="openPicker('series_path')">
             <span class="path-input__icon">&#x1F4C1;</span>
             <span class="path-input__value" :class="{ placeholder: !form.series_path }">
-              {{ form.series_path || "/tv" }}
+              {{ form.series_path || lang.settings.seriesPathPlaceholder }}
             </span>
           </div>
-          <div class="form-help">Directory containing your TV series (Sonarr-style structure)</div>
+          <div class="form-help">{{ lang.settings.seriesPathHelp }}</div>
         </div>
 
         <div class="form-group">
-          <label>Movies Path</label>
+          <label>{{ lang.settings.moviesPath }}</label>
           <div class="path-input" @click="openPicker('movies_path')">
             <span class="path-input__icon">&#x1F4C1;</span>
             <span class="path-input__value" :class="{ placeholder: !form.movies_path }">
-              {{ form.movies_path || "/movies" }}
+              {{ form.movies_path || lang.settings.moviesPathPlaceholder }}
             </span>
           </div>
-          <div class="form-help">Directory containing your movies (Radarr-style structure)</div>
+          <div class="form-help">{{ lang.settings.moviesPathHelp }}</div>
         </div>
 
         <div class="form-group">
-          <label>Scan Interval (minutes)</label>
+          <label>{{ lang.settings.scanInterval }}</label>
           <input
             v-model="form.scan_interval_minutes"
             type="number"
@@ -73,7 +73,7 @@
             class="form-input"
             style="max-width: 120px"
           />
-          <div class="form-help">Set to 0 to disable automatic scanning</div>
+          <div class="form-help">{{ lang.settings.scanIntervalHelp }}</div>
         </div>
 
         <div class="form-group">
@@ -84,9 +84,9 @@
               true-value="1"
               false-value="0"
             />
-            Generate subtitles after scan
+            {{ lang.settings.generateAfterScan }}
           </label>
-          <div class="form-help">Queue subtitle generation for all media without subtitles at the end of every scan. Disabled by default.</div>
+          <div class="form-help">{{ lang.settings.generateAfterScanHelp }}</div>
         </div>
 
         <FolderPicker
@@ -97,9 +97,9 @@
         />
 
         <button type="submit" class="btn btn--primary" :disabled="saving">
-          {{ saving ? "Saving..." : "Save Settings" }}
+          {{ saving ? lang.actions.saving : lang.actions.saveSettings }}
         </button>
-        <span v-if="saved" style="margin-left: 12px; color: var(--success)">Saved!</span>
+        <span v-if="saved" style="margin-left: 12px; color: var(--success)">{{ lang.actions.saved }}</span>
       </form>
     </div>
   </div>
@@ -109,6 +109,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 import FolderPicker from "@/components/FolderPicker.vue";
+import { lang } from "@/lang";
 
 const store = useSettingsStore();
 const saving = ref(false);

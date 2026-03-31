@@ -2,10 +2,10 @@
   <div>
     <div style="display: flex; justify-content: space-between; margin-bottom: 12px">
       <div style="display: flex; gap: 8px">
-        <button class="btn btn--ghost" @click="clearDisplay">Clear display</button>
+        <button class="btn btn--ghost" @click="clearDisplay">{{ lang.actions.clearDisplay }}</button>
       </div>
-      <span class="badge badge--info" v-if="connected">Live</span>
-      <span class="badge badge--danger" v-else>Disconnected</span>
+      <span class="badge badge--info" v-if="connected">{{ lang.badges.live }}</span>
+      <span class="badge badge--danger" v-else>{{ lang.badges.disconnected }}</span>
     </div>
 
     <div class="log-console" ref="consoleEl">
@@ -14,7 +14,7 @@
         :key="i"
         :class="['log-entry', `log-entry--${entry.level}`]"
       >{{ formatDate(entry.timestamp) }} [{{ entry.level }}] {{ entry.message }}</div>
-      <div v-if="!entries.length" style="color: var(--text-muted)">Waiting for log output…</div>
+      <div v-if="!entries.length" style="color: var(--text-muted)">{{ lang.systemLogs.waitingForOutput }}</div>
     </div>
   </div>
 </template>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, nextTick } from "vue";
 import { systemApi } from "@/api";
+import { lang } from "@/lang";
 
 interface LogEntry {
   timestamp: number;

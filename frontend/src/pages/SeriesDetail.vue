@@ -4,7 +4,7 @@
       <h2>{{ name }}</h2>
       <div style="display: flex; gap: 8px">
         <button class="btn btn--primary" :disabled="generatingAll" @click="generateAll">
-          {{ generatingAll ? "Queuing…" : "Generate All Missing" }}
+          {{ generatingAll ? lang.series.queuing : lang.series.generateAllMissing }}
         </button>
         <button
           v-if="hasAnySubtitle"
@@ -12,27 +12,27 @@
           :disabled="deletingAll"
           @click="deleteAll"
         >
-          {{ deletingAll ? "Deleting…" : "Delete All Subtitles" }}
+          {{ deletingAll ? lang.series.deleting : lang.series.deleteAllSubtitles }}
         </button>
       </div>
     </div>
 
     <div v-if="seasons.length === 0" class="empty-state">
-      <div class="empty-state__title">No episodes found</div>
+      <div class="empty-state__title">{{ lang.series.noEpisodes }}</div>
     </div>
 
     <div v-for="season in seasons" :key="season.number" class="season">
       <div class="season__header">
-        <span class="season__title">Season {{ pad(season.number) }}</span>
+        <span class="season__title">{{ lang.series.season }} {{ pad(season.number) }}</span>
         <span class="season__meta">
-          {{ season.subtitled }} / {{ season.episodes.length }} subtitled
+          {{ season.subtitled }} / {{ season.episodes.length }} {{ lang.series.subtitled }}
         </span>
         <button
           class="btn btn--primary"
           :disabled="generatingSeasons.has(season.number) || season.missing === 0"
           @click="generateSeason(season.number)"
         >
-          {{ generatingSeasons.has(season.number) ? "Queuing…" : "Generate Season" }}
+          {{ generatingSeasons.has(season.number) ? lang.series.queuing : lang.series.generateSeason }}
         </button>
         <button
           v-if="season.subtitled > 0"
@@ -40,18 +40,18 @@
           :disabled="deletingSeasons.has(season.number)"
           @click="deleteSeason(season.number)"
         >
-          {{ deletingSeasons.has(season.number) ? "Deleting…" : "Delete Season Subtitles" }}
+          {{ deletingSeasons.has(season.number) ? lang.series.deleting : lang.series.deleteSeasonSubtitles }}
         </button>
       </div>
 
       <table class="table">
         <thead>
           <tr>
-            <th>Episode</th>
-            <th>Title</th>
-            <th>Source SRT</th>
-            <th>Target SRT</th>
-            <th>Actions</th>
+            <th>{{ lang.series.table.episode }}</th>
+            <th>{{ lang.series.table.title }}</th>
+            <th>{{ lang.series.table.sourceSrt }}</th>
+            <th>{{ lang.series.table.targetSrt }}</th>
+            <th>{{ lang.series.table.actions }}</th>
           </tr>
         </thead>
         <tbody>
@@ -60,12 +60,12 @@
             <td>{{ ep.title }}</td>
             <td>
               <span :class="ep.has_source_srt ? 'badge badge--success' : 'badge badge--danger'">
-                {{ ep.has_source_srt ? "Yes" : "No" }}
+                {{ ep.has_source_srt ? lang.badges.yes : lang.badges.no }}
               </span>
             </td>
             <td>
               <span :class="ep.has_target_srt ? 'badge badge--success' : 'badge badge--warning'">
-                {{ ep.has_target_srt ? "Yes" : "Missing" }}
+                {{ ep.has_target_srt ? lang.badges.yes : lang.badges.missing }}
               </span>
             </td>
             <td style="display: flex; gap: 6px">
@@ -74,14 +74,14 @@
                 class="btn btn--success"
                 @click="generateEpisode(ep.id)"
               >
-                Generate
+                {{ lang.actions.generate }}
               </button>
               <button
                 v-if="ep.has_target_srt"
                 class="btn btn--danger"
                 @click="deleteEpisode(ep.id)"
               >
-                Delete
+                {{ lang.actions.delete }}
               </button>
             </td>
           </tr>
@@ -95,6 +95,7 @@
 import { ref, computed, onMounted } from "vue";
 import { seriesApi } from "@/api";
 import type { Episode } from "@/stores/library";
+import { lang } from "@/lang";
 
 interface SeasonGroup {
   number: number;
@@ -202,24 +203,24 @@ onMounted(load);
 
 .season {
   margin-bottom: 28px;
+}
 
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 8px;
-  }
+.season__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
 
-  &__title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
+.season__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
-  &__meta {
-    font-size: 13px;
-    color: var(--text-muted);
-    flex: 1;
-  }
+.season__meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
 }
 </style>

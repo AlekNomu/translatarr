@@ -16,11 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
-COPY translatarr/ translatarr/
-COPY translatarr_web/ translatarr_web/
+COPY backend/ backend/
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir .
 
-COPY --from=frontend-build /app/translatarr_web/static/ translatarr_web/static/
+COPY --from=frontend-build /app/backend/translatarr_web/static/ backend/translatarr_web/static/
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

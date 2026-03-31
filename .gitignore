@@ -66,7 +66,7 @@ Thumbs.db
 # ── Frontend (Vue/Vite) ──────────────────────────────────────────────────────
 frontend/node_modules/
 frontend/dist/
-translatarr_web/static/
+backend/translatarr_web/static/
 
 # ── uv ────────────────────────────────────────────────────────────────────────
 # uv.lock IS committed (reproducible builds) — only ignore the cache

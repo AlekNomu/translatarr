@@ -11,7 +11,7 @@ dist/
 htmlcov/
 frontend/node_modules/
 frontend/dist/
-translatarr_web/static/
+backend/translatarr_web/static/
 docker/Dockerfile
 tests/
 *.mkv

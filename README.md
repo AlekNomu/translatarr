@@ -2,7 +2,9 @@
 
 > Automatic subtitle generation for your media library — transcription via **OpenAI Whisper**, translation via **Google Translate**, no API key required.
 
-Translatarr is a self-hosted web application that scans your movie and TV series directories and shows you which subtitles are missing. Generation is always **on demand**, you decide when to trigger it, per episode, per season, or per series. Generated `.srt` files are written directly alongside your media files and picked up automatically by **Jellyfin** and **Plex**.
+Translatarr is a self-hosted web application built to solve a common frustration: watching media on **Jellyfin** on your TV and ending up with subtitles that are out of sync, in the wrong language, or simply missing. Tools like **Bazarr** download subtitles from online sources, but when nothing is available or what's available doesn't match your encode, you're stuck. Translatarr fills that gap by generating subtitles directly from the audio using Whisper, translating them with Google Translate and validating their timing.
+
+It can work **alongside Bazarr** (as a fallback when Bazarr finds nothing) or **replace it entirely** if you prefer generating subtitles locally. Generated `.srt` files are written directly alongside your media files and picked up automatically by Jellyfin and Plex.
 
 ---
 
@@ -38,6 +40,20 @@ Translatarr is a self-hosted web application that scans your movie and TV series
 
 ---
 
+## Supported Languages
+
+The following target languages are available in the Settings UI:
+
+| Code | Language |
+|------|----------|
+| `fr` | French |
+| `es` | Spanish |
+| `de` | German |
+| `it` | Italian |
+| `pt` | Portuguese |
+
+---
+
 ## Screenshot
 
 
@@ -63,8 +79,6 @@ docker run -d \
 ```
 
 The web interface is then available at `http://your-server-ip:6868`.
-
-> **Port note:** Translatarr listens internally on **6868**.
 
 ---
 
@@ -119,16 +133,17 @@ After starting, open the web UI and go to **Settings → General**:
 | Whisper model | Transcription model size (see table below) | `medium` |
 | Source language | Force audio language, skip auto-detection | auto |
 | Sync check | Validate subtitle timing after generation | enabled |
+| Generate after scan | Automatically queue subtitle generation for all media without subtitles after each scan | disabled |
 
 ### Whisper model comparison
 
-| Model | Speed | Accuracy | VRAM |
-|---|---|---|---|
-| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB |
-| `base`   | ⚡⚡⚡  | ★★☆☆☆ | ~1 GB |
-| `small`  | ⚡⚡   | ★★★☆☆ | ~2 GB |
-| `medium` | ⚡    | ★★★★☆ | ~5 GB |
-| `large`  | 🐢   | ★★★★★ | ~10 GB |
+| Model | Speed | Accuracy | VRAM | CPU (1h video) |
+|---|---|---|---|---|
+| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB | ~5 min |
+| `base`   | ⚡⚡⚡  | ★★☆☆☆ | ~1 GB | ~15 min |
+| `small`  | ⚡⚡   | ★★★☆☆ | ~2 GB | ~45 min |
+| `medium` | ⚡    | ★★★★☆ | ~5 GB | ~2 h |
+| `large`  | 🐢   | ★★★★★ | ~10 GB | ~5 h |
 
 `medium` is the recommended default. Use `large` for professional results on noisy or multi-speaker content.
 

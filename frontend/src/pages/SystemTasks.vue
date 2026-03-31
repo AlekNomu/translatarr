@@ -1,29 +1,31 @@
 <template>
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px">
-      <span style="font-size: 13px; color: var(--text-muted)">{{ tasks.length }} task(s)</span>
-      <button class="btn btn--primary" @click="load">Refresh</button>
+      <span style="font-size: 13px; color: var(--text-muted)">
+        {{ tasks.length }} {{ tasks.length === 1 ? lang.systemTasks.task : lang.systemTasks.tasks }}
+      </span>
+      <button class="btn btn--primary" @click="load">{{ lang.actions.refresh }}</button>
     </div>
 
     <div v-if="tasks.length === 0" class="empty-state">
-      <div class="empty-state__title">No tasks yet</div>
-      <div class="empty-state__text">Tasks appear here when subtitles are generated or a scan runs.</div>
+      <div class="empty-state__title">{{ lang.systemTasks.noTasks.title }}</div>
+      <div class="empty-state__text">{{ lang.systemTasks.noTasks.text }}</div>
     </div>
 
     <table v-else class="table">
       <thead>
         <tr>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Progress</th>
-          <th>Detail</th>
-          <th>Created</th>
-          <th>Actions</th>
+          <th>{{ lang.systemTasks.table.type }}</th>
+          <th>{{ lang.systemTasks.table.status }}</th>
+          <th>{{ lang.systemTasks.table.progress }}</th>
+          <th>{{ lang.systemTasks.table.detail }}</th>
+          <th>{{ lang.systemTasks.table.created }}</th>
+          <th>{{ lang.systemTasks.table.actions }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="t in tasks" :key="t.id">
-          <td>{{ t.task_type === "generate_subtitle" ? "Subtitle" : "Scan" }}</td>
+          <td>{{ t.task_type === "generate_subtitle" ? lang.systemTasks.types.subtitle : lang.systemTasks.types.scan }}</td>
           <td>
             <span :class="statusBadge(t.status)">{{ t.status }}</span>
           </td>
@@ -31,10 +33,10 @@
             <div v-if="t.status === 'running'" class="progress-bar">
               <div class="progress-bar__fill" :style="{ width: t.progress + '%' }" />
             </div>
-            <span v-else-if="t.status === 'completed'">100%</span>
-            <span v-else>—</span>
+            <span v-else-if="t.status === 'completed'">{{ lang.systemTasks.completedProgress }}</span>
+            <span v-else>{{ lang.systemTasks.noValue }}</span>
           </td>
-          <td class="cell--detail">{{ t.detail ?? "—" }}</td>
+          <td class="cell--detail">{{ t.detail ?? lang.systemTasks.noValue }}</td>
           <td>{{ formatDate(t.created_at) }}</td>
           <td>
             <button
@@ -42,7 +44,7 @@
               class="btn btn--danger"
               @click="cancel(t.id)"
             >
-              Cancel
+              {{ lang.actions.cancel }}
             </button>
           </td>
         </tr>
@@ -54,6 +56,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { tasksApi } from "@/api";
+import { lang } from "@/lang";
 
 interface Task {
   id: string;
@@ -114,13 +117,13 @@ onUnmounted(() => {
   background: var(--border);
   border-radius: 3px;
   overflow: hidden;
+}
 
-  &__fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 3px;
-    transition: width 0.3s;
-  }
+.progress-bar__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
 }
 
 .cell--detail {
