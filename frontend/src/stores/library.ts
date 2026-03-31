@@ -17,6 +17,7 @@ export interface Episode {
   episode: number | null;
   file_path: string;
   has_source_srt: boolean;
+  source_srt_label: string | null;
   has_target_srt: boolean;
   target_srt_path: string | null;
   file_size: number | null;
@@ -29,6 +30,7 @@ export interface Movie {
   year: number | null;
   file_path: string;
   has_source_srt: boolean;
+  source_srt_label: string | null;
   has_target_srt: boolean;
   target_srt_path: string | null;
   file_size: number | null;

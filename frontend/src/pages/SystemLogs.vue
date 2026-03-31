@@ -51,6 +51,8 @@ function scrollToBottom() {
   });
 }
 
+let _reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
 function connect() {
   es = new EventSource("/api/system/logs");
   es.onopen = () => { connected.value = true; };
@@ -60,7 +62,12 @@ function connect() {
     if (entries.value.length > 1000) entries.value.shift();
     scrollToBottom();
   };
-  es.onerror = () => { connected.value = false; };
+  es.onerror = () => {
+    connected.value = false;
+    es?.close();
+    es = null;
+    _reconnectTimeout = setTimeout(connect, 5000);
+  };
 }
 
 onMounted(async () => {
@@ -71,6 +78,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  if (_reconnectTimeout) clearTimeout(_reconnectTimeout);
   es?.close();
 });
 </script>

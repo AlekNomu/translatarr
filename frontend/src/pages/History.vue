@@ -81,7 +81,7 @@ function setFilter(f: string) {
 }
 
 async function load() {
-  const params: Record<string, any> = { page: page.value, per_page: perPage };
+  const params: Record<string, string | number> = { page: page.value, per_page: perPage };
   if (filter.value) params.action = filter.value;
   const { data } = await historyApi.list(params);
   items.value = data.items;

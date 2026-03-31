@@ -28,6 +28,7 @@ const titles: Record<string, string> = {
   "/settings/general": lang.nav.settings,
   "/system/logs": lang.nav.logs,
   "/system/status": lang.nav.status,
+  "/system/tasks": lang.nav.tasks,
 };
 
 const pageTitle = computed(() => {

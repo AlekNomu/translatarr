@@ -56,16 +56,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { tasksApi } from "@/api";
+import type { Task } from "@/stores/tasks";
 import { lang } from "@/lang";
-
-interface Task {
-  id: string;
-  task_type: string;
-  status: string;
-  progress: number;
-  detail: string | null;
-  created_at: string;
-}
 
 const tasks = ref<Task[]>([]);
 let pollInterval: ReturnType<typeof setInterval> | null = null;

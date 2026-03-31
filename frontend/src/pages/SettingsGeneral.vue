@@ -5,11 +5,9 @@
         <div class="form-group">
           <label>{{ lang.settings.targetLanguage }}</label>
           <select v-model="form.target_lang" class="form-select">
-            <option value="fr">{{ lang.settings.languages.fr }}</option>
-            <option value="es">{{ lang.settings.languages.es }}</option>
-            <option value="de">{{ lang.settings.languages.de }}</option>
-            <option value="it">{{ lang.settings.languages.it }}</option>
-            <option value="pt">{{ lang.settings.languages.pt }}</option>
+            <option v-for="(name, code) in LANGUAGE_NAMES" :key="code" :value="code">
+              {{ name }} ({{ code }})
+            </option>
           </select>
         </div>
 
@@ -109,7 +107,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 import FolderPicker from "@/components/FolderPicker.vue";
-import { lang } from "@/lang";
+import { lang, LANGUAGE_NAMES } from "@/lang";
 
 const store = useSettingsStore();
 const saving = ref(false);
@@ -148,7 +146,7 @@ const currentModelInfo = computed(() =>
 );
 
 async function load() {
-  await store.fetch();
+  if (!Object.keys(store.settings).length) await store.fetch();
   Object.assign(form, store.settings);
 }
 

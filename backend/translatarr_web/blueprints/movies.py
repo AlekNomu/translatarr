@@ -19,6 +19,7 @@ def _movie_row(r) -> dict:
         "year": r["year"],
         "file_path": r["file_path"],
         "has_source_srt": bool(r["has_source_srt"]),
+        "source_srt_label": r["source_srt_label"],
         "has_target_srt": bool(r["has_target_srt"]),
         "target_srt_path": r["target_srt_path"],
         "file_size": r["file_size"],
@@ -31,7 +32,7 @@ def list_movies():
     db = get_db()
     rows = db.execute("""
         SELECT id, title, year, file_path,
-               has_source_srt, has_target_srt, target_srt_path,
+               has_source_srt, source_srt_label, has_target_srt, target_srt_path,
                file_size, duration
         FROM media_items
         WHERE media_type = 'movie'
@@ -45,7 +46,7 @@ def movie_detail(movie_id: int):
     db = get_db()
     row = db.execute("""
         SELECT id, title, year, file_path,
-               has_source_srt, has_target_srt, target_srt_path,
+               has_source_srt, source_srt_label, has_target_srt, target_srt_path,
                file_size, duration
         FROM media_items
         WHERE id = ? AND media_type = 'movie'

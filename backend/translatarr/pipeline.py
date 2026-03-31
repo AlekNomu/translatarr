@@ -20,6 +20,12 @@ from translatarr.audio import (
     get_duration,
     require_ffmpeg,
 )
+# re-exported so scanner.py has a single import point
+__all__ = [
+    "find_srt_by_lang", "find_source_srt_with_label",
+    "target_srt_tags", "get_english_srt",
+    "run_from_srt", "run_from_mkv",
+]
 from translatarr.models import SubtitleTrack
 from translatarr.srt_io import read_srt, write_srt
 from translatarr.sync_checker import check_sync
@@ -61,6 +67,38 @@ def find_srt_by_lang(mkv_path: Path, lang_tags: tuple[str, ...]) -> Path | None:
         candidate = parent / f"{stem}{suffix}"
         if candidate.exists():
             return candidate
+    return None
+
+
+_HI_MARKERS = ("hi", "sdh", "cc")
+
+
+def find_source_srt_with_label(mkv_path: Path) -> str | None:
+    """Return a label describing the available English subtitle source, or None.
+
+    Checks in order:
+    1. External SRT with HI markers (hi/sdh/cc) → "EN:HI"
+    2. Regular external English SRT             → "EN"
+    3. Embedded subtitle track via ffprobe       → "EN:EMB"
+    """
+    stem = mkv_path.stem
+    parent = mkv_path.parent
+
+    for tag in ("en", "eng", "english"):
+        for hi in _HI_MARKERS:
+            if (parent / f"{stem}.{tag}.{hi}.srt").exists():
+                return "EN:HI"
+        if (parent / f"{stem}.{tag}.srt").exists():
+            return "EN"
+
+    if (parent / f"{stem}.srt").exists():
+        return "EN"
+
+    # Only call ffprobe when no external SRT found
+    sub_index = find_embedded_sub_index(mkv_path)
+    if sub_index is not None:
+        return "EN:EMB"
+
     return None
 
 

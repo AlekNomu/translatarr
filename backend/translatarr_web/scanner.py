@@ -13,7 +13,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from translatarr.pipeline import find_srt_by_lang, target_srt_tags
+from translatarr.pipeline import find_source_srt_with_label, find_srt_by_lang, target_srt_tags
 
 logger = logging.getLogger("translatarr")
 
@@ -126,10 +126,11 @@ def scan_library(
 
     # ── Check subtitle presence for discovered files ──────────────────────
     lang_tags = target_srt_tags(target_lang)
-    en_tags = ("en", "eng", "english", "")
     for file_path, meta in discovered.items():
         mkv = Path(file_path)
-        meta["has_source_srt"] = 1 if find_srt_by_lang(mkv, en_tags) else 0
+        source_label = find_source_srt_with_label(mkv)
+        meta["has_source_srt"] = 1 if source_label else 0
+        meta["source_srt_label"] = source_label
         target_srt = find_srt_by_lang(mkv, lang_tags)
         meta["has_target_srt"] = 1 if target_srt else 0
         meta["target_srt_path"] = str(target_srt) if target_srt else None
@@ -146,24 +147,26 @@ def scan_library(
         if file_path in existing_map:
             existing_id = existing_map[file_path]
             current = db.execute(
-                "SELECT has_source_srt, has_target_srt, target_srt_path, file_size FROM media_items WHERE id = ?",
+                "SELECT has_source_srt, source_srt_label, has_target_srt, target_srt_path, file_size FROM media_items WHERE id = ?",
                 (existing_id,),
             ).fetchone()
             if (
                 current["has_source_srt"] != meta["has_source_srt"]
+                or current["source_srt_label"] != meta["source_srt_label"]
                 or current["has_target_srt"] != meta["has_target_srt"]
                 or current["target_srt_path"] != meta["target_srt_path"]
                 or current["file_size"] != meta["file_size"]
             ):
                 db.execute(
                     """UPDATE media_items SET
-                        has_source_srt = ?, has_target_srt = ?, target_srt_path = ?,
+                        has_source_srt = ?, source_srt_label = ?,
+                        has_target_srt = ?, target_srt_path = ?,
                         file_size = ?, updated_at = datetime('now')
                     WHERE id = ?""",
                     (
-                        meta["has_source_srt"], meta["has_target_srt"],
-                        meta["target_srt_path"], meta["file_size"],
-                        existing_id,
+                        meta["has_source_srt"], meta["source_srt_label"],
+                        meta["has_target_srt"], meta["target_srt_path"],
+                        meta["file_size"], existing_id,
                     ),
                 )
                 result.updated += 1
@@ -173,12 +176,12 @@ def scan_library(
             db.execute(
                 """INSERT INTO media_items
                     (media_type, file_path, title, year, series_name, season, episode,
-                     has_source_srt, has_target_srt, target_srt_path, file_size)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     has_source_srt, source_srt_label, has_target_srt, target_srt_path, file_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     meta["media_type"], meta["file_path"], meta["title"],
                     meta["year"], meta["series_name"], meta["season"],
-                    meta["episode"], meta["has_source_srt"],
+                    meta["episode"], meta["has_source_srt"], meta["source_srt_label"],
                     meta["has_target_srt"], meta["target_srt_path"],
                     meta["file_size"],
                 ),

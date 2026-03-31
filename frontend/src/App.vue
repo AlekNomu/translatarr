@@ -11,6 +11,11 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from "vue";
 import AppSidebar from "./components/AppSidebar.vue";
 import AppHeader from "./components/AppHeader.vue";
+import { useSettingsStore } from "@/stores/settings";
+
+const settingsStore = useSettingsStore();
+onMounted(() => settingsStore.fetch());
 </script>

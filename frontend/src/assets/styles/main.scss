@@ -399,6 +399,33 @@ a {
     }
   }
 
+  &--icon {
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    justify-content: center;
+    border-radius: var(--radius-sm);
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-light);
+    }
+
+    &-danger {
+      &:hover {
+        color: var(--danger);
+        border-color: var(--danger);
+        background: rgba(218, 54, 51, 0.08);
+      }
+    }
+  }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -566,6 +593,41 @@ a {
     white-space: nowrap;
 
     &.placeholder { color: var(--text-muted); }
+  }
+}
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 400px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__body {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
 }
 

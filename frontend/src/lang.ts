@@ -1,3 +1,21 @@
+export const LANGUAGE_NAMES: Record<string, string> = {
+  fr: "French",
+  es: "Spanish",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+  en: "English",
+  ja: "Japanese",
+  ko: "Korean",
+  zh: "Chinese",
+  ru: "Russian",
+  ar: "Arabic",
+  nl: "Dutch",
+  pl: "Polish",
+  sv: "Swedish",
+  tr: "Turkish",
+};
+
 export const lang = {
   app: {
     name: "Translatarr",
@@ -32,11 +50,21 @@ export const lang = {
     select: "Select",
   },
 
+  confirm: {
+    deleteSubtitle: (name: string) => `Are you sure you want to delete the subtitle for "${name}"?`,
+    deleteSeasonSubtitles: (series: string, season: number) =>
+      `Are you sure you want to delete all subtitles for Season ${season} of "${series}"?`,
+    deleteSeriesSubtitles: (series: string) =>
+      `Are you sure you want to delete all subtitles for "${series}"?`,
+  },
+
   actions: {
     generateSubtitles: "Generate Subtitles",
     generate: "Generate",
+    generateTitle: "Generate subtitle",
     deleteSubtitle: "Delete Subtitle",
     delete: "Delete",
+    deleteTitle: "Delete subtitle",
     cancel: "Cancel",
     refresh: "Refresh",
     saveSettings: "Save Settings",
@@ -79,8 +107,7 @@ export const lang = {
   },
 
   movies: {
-    sourceSrt: "Source SRT:",
-    targetSrt: "Target SRT:",
+    loading: "Loading…",
     empty: {
       title: "No movies found",
       text: "Configure the movies path in Settings and run a scan.",
@@ -88,6 +115,7 @@ export const lang = {
   },
 
   series: {
+    loading: "Loading…",
     generateAllMissing: "Generate All Missing",
     deleteAllSubtitles: "Delete All Subtitles",
     generateSeason: "Generate Season",
@@ -102,8 +130,7 @@ export const lang = {
     table: {
       episode: "Episode",
       title: "Title",
-      sourceSrt: "Source SRT",
-      targetSrt: "Target SRT",
+      sourceSrt: "Subtitles",
       actions: "Actions",
     },
     empty: {
@@ -114,13 +141,6 @@ export const lang = {
 
   settings: {
     targetLanguage: "Target Language",
-    languages: {
-      fr: "French (fr)",
-      es: "Spanish (es)",
-      de: "German (de)",
-      it: "Italian (it)",
-      pt: "Portuguese (pt)",
-    },
     whisperModel: "Whisper Model",
     concurrentWorkers: "Concurrent Workers",
     workersHelp: "Requires a restart to take effect.",
@@ -147,6 +167,7 @@ export const lang = {
     ffmpeg: "ffmpeg",
     whisper: "Whisper",
     loading: "Loading status…",
+    updateAvailable: (v: string) => `Update available: v${v}`,
   },
 
   systemTasks: {

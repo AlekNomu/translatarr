@@ -5,7 +5,12 @@
         <tbody>
           <tr>
             <td><strong>{{ lang.systemStatus.version }}</strong></td>
-            <td>{{ status.version }}</td>
+            <td>
+              {{ status.version }}
+              <span v-if="updateAvailable" class="badge badge--warning" style="margin-left: 8px;">
+                ⚠ {{ lang.systemStatus.updateAvailable(latestVersion!) }}
+              </span>
+            </td>
           </tr>
           <tr>
             <td><strong>{{ lang.systemStatus.python }}</strong></td>
@@ -54,6 +59,8 @@ interface Status {
 }
 
 const status = ref<Status | null>(null);
+const latestVersion = ref<string | null>(null);
+const updateAvailable = ref(false);
 
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -67,5 +74,19 @@ function formatUptime(seconds: number): string {
 onMounted(async () => {
   const { data } = await systemApi.status();
   status.value = data;
+
+  try {
+    const res = await fetch("https://api.github.com/repos/aleknomu/translatarr/releases/latest");
+    if (res.ok) {
+      const json = await res.json();
+      const tag = (json.tag_name as string).replace(/^v/, "");
+      if (tag !== data.version) {
+        latestVersion.value = tag;
+        updateAvailable.value = true;
+      }
+    }
+  } catch {
+    // silently ignore if GitHub is unreachable
+  }
 });
 </script>

@@ -55,9 +55,9 @@ The following target languages are available in the Settings UI:
 ---
 
 ## Screenshot
-
-
-
+![Movies Overview](./docs/img/movie_overview.png)
+![Series Overview](./docs/img/series_overview.png)
+![Series details](./docs/img/series_details.png)
 ---
 
 ## Getting Started
@@ -134,12 +134,12 @@ After starting, open the web UI and go to **Settings → General**:
 ### Whisper model comparison
 
 | Model | Speed | Accuracy | VRAM | CPU (1h video) |
-|---|---|---|---|---|
-| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB | ~5 min |
-| `base`   | ⚡⚡⚡  | ★★☆☆☆ | ~1 GB | ~15 min |
-| `small`  | ⚡⚡   | ★★★☆☆ | ~2 GB | ~45 min |
-| `medium` | ⚡    | ★★★★☆ | ~5 GB | ~2 h |
-| `large`  | 🐢   | ★★★★★ | ~10 GB | ~5 h |
+|----------|------------|----------|-------|--------|
+| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB | ~5 min  |
+| `base`   | ⚡⚡⚡    | ★★☆☆☆ | ~1 GB | ~15 min |
+| `small`  | ⚡⚡      | ★★★☆☆ | ~2 GB | ~45 min |
+| `medium` | ⚡        | ★★★★☆ | ~5 GB | ~2 h |
+| `large`  | 🐢        | ★★★★★ | ~10 GB | ~5 h |
 
 `medium` is the recommended default. Use `large` for professional results on noisy or multi-speaker content.
 
@@ -156,6 +156,16 @@ When Translatarr processes an MKV file, it follows this priority order:
 5. **Both exist but different entry counts** → translate source to target language
 6. **Only source exists** → translate to target language, preserve all timings
 7. **Neither exists** → extract audio with ffmpeg → transcribe with Whisper → translate to target language
+
+---
+
+## FAQ
+
+**When is Whisper AI used?**
+> In practice, less than 5% of the time. Most media already includes an embedded English subtitle track that simply needs to be translated.
+
+**How long does it take to translate a 10-episode season?**
+> Around 5 minutes.
 
 ---
 

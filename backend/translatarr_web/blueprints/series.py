@@ -47,7 +47,7 @@ def series_detail(name: str):
     db = get_db()
     rows = db.execute("""
         SELECT id, title, season, episode, file_path,
-               has_source_srt, has_target_srt, target_srt_path,
+               has_source_srt, source_srt_label, has_target_srt, target_srt_path,
                file_size, duration
         FROM media_items
         WHERE media_type = 'episode' AND series_name = ?
@@ -65,6 +65,7 @@ def series_detail(name: str):
             "episode": r["episode"],
             "file_path": r["file_path"],
             "has_source_srt": bool(r["has_source_srt"]),
+            "source_srt_label": r["source_srt_label"],
             "has_target_srt": bool(r["has_target_srt"]),
             "target_srt_path": r["target_srt_path"],
             "file_size": r["file_size"],

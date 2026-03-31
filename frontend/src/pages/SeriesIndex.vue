@@ -1,6 +1,9 @@
 <template>
   <div>
-    <div v-if="store.series.length" class="media-grid">
+    <div v-if="loading" class="empty-state">
+      <div class="empty-state__title">{{ lang.series.loading }}</div>
+    </div>
+    <div v-else-if="store.series.length" class="media-grid">
       <router-link
         v-for="s in store.series"
         :key="s.series_name"
@@ -31,10 +34,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useLibraryStore } from "@/stores/library";
+import { useTasksStore } from "@/stores/tasks";
 import { lang } from "@/lang";
 
 const store = useLibraryStore();
-onMounted(() => store.fetchSeries());
+const tasksStore = useTasksStore();
+const loading = ref(true);
+
+watch(() => tasksStore.scanVersion, () => store.fetchSeries());
+
+onMounted(async () => {
+  await store.fetchSeries();
+  loading.value = false;
+  tasksStore.startScanWatcher();
+});
+
+onUnmounted(() => tasksStore.stopScanWatcher());
 </script>

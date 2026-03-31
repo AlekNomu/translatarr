@@ -34,6 +34,7 @@ include = ["translatarr*", "translatarr_web*"]
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
 addopts      = "-v --tb=short"
+pythonpath   = ["backend"]
 
 [tool.ruff]
 line-length = 99
