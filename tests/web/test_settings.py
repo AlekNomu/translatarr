@@ -68,6 +68,30 @@ def test_save_settings_upsert(mem_db):
     assert load_setting(mem_db, "workers") == "8"
 
 
+def test_env_override_load_settings(mem_db, monkeypatch):
+    seed_defaults(mem_db)
+    monkeypatch.setenv("MOVIES_PATH", "/data/films")
+    monkeypatch.setenv("SERIES_PATH", "/data/series")
+    settings = load_settings(mem_db)
+    assert settings["movies_path"] == "/data/films"
+    assert settings["series_path"] == "/data/series"
+    # Unrelated settings must not be affected
+    assert settings["target_lang"] == "fr"
+
+
+def test_env_override_load_setting(mem_db, monkeypatch):
+    seed_defaults(mem_db)
+    monkeypatch.setenv("MOVIES_PATH", "/custom/movies")
+    assert load_setting(mem_db, "movies_path") == "/custom/movies"
+
+
+def test_env_override_not_set_uses_db(mem_db, monkeypatch):
+    seed_defaults(mem_db)
+    save_settings(mem_db, {"movies_path": "/my/movies"})
+    monkeypatch.delenv("MOVIES_PATH", raising=False)
+    assert load_setting(mem_db, "movies_path") == "/my/movies"
+
+
 def test_whisper_model_info_has_all_models():
     expected = {"tiny", "base", "small", "medium", "large"}
     assert set(WHISPER_MODEL_INFO.keys()) == expected

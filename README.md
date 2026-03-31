@@ -71,9 +71,9 @@ docker run -d \
   -e PGID=1000 \
   -e TZ=Europe/Paris \
   -p 6868:6868 \
-  -v /path/to/config:/config \
-  -v /path/to/movies:/movies \
-  -v /path/to/tv:/tv \
+  -v /path/to/translatarr/config:/config \
+  -v /path/to/movies:/movies `# optional` \
+  -v /path/to/tv:/tv `# optional` \
   --restart unless-stopped \
   aleknomu/translatarr:latest
 ```
@@ -94,9 +94,9 @@ services:
       - PGID=1000
       - TZ=Europe/Paris
     volumes:
-      - ./config:/config
-      - /path/to/movies:/movies
-      - /path/to/tv:/tv
+      - /path/to/translatarr/config:/config
+      - /path/to/movies:/movies    # optional
+      - /path/to/tv:/tv            # optional
     ports:
       - "6868:6868"
     restart: unless-stopped

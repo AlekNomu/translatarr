@@ -6,6 +6,7 @@ Application settings backed by the ``settings`` SQLite table.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 
 DEFAULT_SETTINGS: dict[str, str] = {
@@ -31,6 +32,21 @@ WHISPER_MODEL_INFO: dict[str, dict[str, str]] = {
 }
 
 
+# Environment variables that override database settings (useful for Docker mounts).
+_ENV_OVERRIDES: dict[str, str] = {
+    "movies_path": "MOVIES_PATH",
+    "series_path": "SERIES_PATH",
+}
+
+
+def _apply_env_overrides(settings: dict[str, str]) -> dict[str, str]:
+    for key, env_var in _ENV_OVERRIDES.items():
+        value = os.environ.get(env_var)
+        if value:
+            settings[key] = value
+    return settings
+
+
 def seed_defaults(db: sqlite3.Connection) -> None:
     """Insert default settings if they don't already exist."""
     for key, value in DEFAULT_SETTINGS.items():
@@ -42,13 +58,18 @@ def seed_defaults(db: sqlite3.Connection) -> None:
 
 
 def load_settings(db: sqlite3.Connection) -> dict[str, str]:
-    """Return all settings as a plain dict."""
+    """Return all settings as a plain dict, with env var overrides applied."""
     rows = db.execute("SELECT key, value FROM settings").fetchall()
-    return {row["key"]: row["value"] for row in rows}
+    return _apply_env_overrides({row["key"]: row["value"] for row in rows})
 
 
 def load_setting(db: sqlite3.Connection, key: str) -> str:
-    """Return a single setting value, falling back to the default."""
+    """Return a single setting value, with env var override taking precedence."""
+    env_var = _ENV_OVERRIDES.get(key)
+    if env_var:
+        value = os.environ.get(env_var)
+        if value:
+            return value
     row = db.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
     if row:
         return row["value"]
