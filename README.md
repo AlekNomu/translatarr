@@ -105,12 +105,8 @@ services:
 ### Manual installation
 
 ```bash
-# Requires Python 3.10+ and ffmpeg installed
-git clone https://github.com/aleknomu/translatarr.git
-cd translatarr
-uv sync          # or: pip install -e .
-
-translatarr      # starts on http://localhost:6868
+uv sync
+uv run translatarr
 ```
 
 Options:
