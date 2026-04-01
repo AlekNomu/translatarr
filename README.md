@@ -1,6 +1,6 @@
 # Translatarr
 
-> Automatic subtitle generation for your media library — transcription via **OpenAI Whisper**, translation via **Google Translate**, no API key required.
+> Automatic subtitle generation for your media library — transcription via **faster-whisper** (OpenAI Whisper models, INT8 optimised), translation via **Google Translate**, no API key required.
 
 Translatarr is a self-hosted web application built to solve a common frustration: watching media on **Jellyfin** on your TV and ending up with subtitles that are out of sync, in the wrong language, or simply missing. Tools like **Bazarr** download subtitles from online sources, but when nothing is available or what's available doesn't match your encode, you're stuck. Translatarr fills that gap by generating subtitles directly from the audio using Whisper, translating them with Google Translate and validating their timing.
 
@@ -133,13 +133,15 @@ After starting, open the web UI and go to **Settings → General**:
 
 ### Whisper model comparison
 
+Translatarr uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with INT8 quantization, which is 2–4× faster than the original OpenAI Whisper and uses roughly half the VRAM.
+
 | Model | Speed | Accuracy | VRAM | CPU (1h video) |
 |----------|------------|----------|-------|--------|
-| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~1 GB | ~5 min  |
-| `base`   | ⚡⚡⚡    | ★★☆☆☆ | ~1 GB | ~15 min |
-| `small`  | ⚡⚡      | ★★★☆☆ | ~2 GB | ~45 min |
-| `medium` | ⚡        | ★★★★☆ | ~5 GB | ~2 h |
-| `large`  | 🐢        | ★★★★★ | ~10 GB | ~5 h |
+| `tiny`   | ⚡⚡⚡⚡ | ★☆☆☆☆ | ~0.4 GB | ~2 min  |
+| `base`   | ⚡⚡⚡    | ★★☆☆☆ | ~0.5 GB | ~5 min |
+| `small`  | ⚡⚡      | ★★★☆☆ | ~1 GB | ~15 min |
+| `medium` | ⚡        | ★★★★☆ | ~2.5 GB | ~45 min |
+| `large`  | 🐢        | ★★★★★ | ~5 GB | ~2 h |
 
 `medium` is the recommended default. Use `large` for professional results on noisy or multi-speaker content.
 

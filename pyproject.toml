@@ -11,7 +11,7 @@ license     = { text = "MIT" }
 requires-python = ">=3.10"
 
 dependencies = [
-    "openai-whisper",
+    "faster-whisper>=1.0",
     "deep-translator>=1.9",
     "flask>=3.0",
     "apscheduler>=3.10",

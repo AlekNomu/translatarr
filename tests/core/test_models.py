@@ -1,6 +1,7 @@
 """Tests for translatarr.models."""
 
 import pytest
+from types import SimpleNamespace
 from translatarr.models import (
     Subtitle,
     SubtitleTrack,
@@ -57,7 +58,7 @@ class TestSubtitle:
         assert "Hi there" in block
 
     def test_from_whisper_segment(self):
-        segment = {"start": 1.0, "end": 4.0, "text": "  Hello world  "}
+        segment = SimpleNamespace(start=1.0, end=4.0, text="  Hello world  ")
         sub = Subtitle.from_whisper_segment(index=1, segment=segment)
         assert sub.text == "Hello world"
         assert sub.start == 1.0
@@ -99,8 +100,8 @@ class TestSubtitleTrack:
 
     def test_from_whisper_segments(self):
         segments = [
-            {"start": 0.0, "end": 2.0, "text": "Bonjour"},
-            {"start": 3.0, "end": 5.0, "text": "Au revoir"},
+            SimpleNamespace(start=0.0, end=2.0, text="Bonjour"),
+            SimpleNamespace(start=3.0, end=5.0, text="Au revoir"),
         ]
         track = SubtitleTrack.from_whisper_segments(segments)
         assert len(track) == 2

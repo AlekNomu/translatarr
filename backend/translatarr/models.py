@@ -69,12 +69,12 @@ class Subtitle:
         )
 
     @classmethod
-    def from_whisper_segment(cls, index: int, segment: dict) -> "Subtitle":
+    def from_whisper_segment(cls, index: int, segment) -> "Subtitle":
         return cls(
             index=index,
-            start=float(segment["start"]),
-            end=float(segment["end"]),
-            text=segment["text"].strip(),
+            start=float(segment.start),
+            end=float(segment.end),
+            text=segment.text.strip(),
         )
 
 
@@ -85,7 +85,7 @@ class SubtitleTrack:
     subtitles: list[Subtitle] = field(default_factory=list)
 
     @classmethod
-    def from_whisper_segments(cls, segments: list[dict]) -> "SubtitleTrack":
+    def from_whisper_segments(cls, segments) -> "SubtitleTrack":
         subs = [
             Subtitle.from_whisper_segment(i + 1, seg)
             for i, seg in enumerate(segments)

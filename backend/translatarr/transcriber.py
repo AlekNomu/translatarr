@@ -1,7 +1,7 @@
 """
 translatarr.transcriber
 ~~~~~~~~~~~~~~~~~~~
-Speech-to-text transcription using OpenAI Whisper.
+Speech-to-text transcription using faster-whisper.
 """
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ from pathlib import Path
 from translatarr.models import SubtitleTrack
 
 try:
-    import whisper  # type: ignore
+    from faster_whisper import WhisperModel  # type: ignore
 except ImportError:
-    whisper = None  # type: ignore
+    WhisperModel = None  # type: ignore
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -29,30 +29,30 @@ def transcribe(
     model_name: str = "medium",
     language: str | None = None,
 ) -> tuple[SubtitleTrack, str]:
-    """Transcribe *wav_path* with Whisper.
+    """Transcribe *wav_path* with Whisper via faster-whisper.
 
     :returns: ``(track, detected_language)`` tuple.
-    :raises RuntimeError: If *openai-whisper* is not installed or transcription
+    :raises RuntimeError: If *faster-whisper* is not installed or transcription
                           yields no segments.
     """
-    if whisper is None:
+    if WhisperModel is None:
         raise RuntimeError(
-            "'openai-whisper' is not installed.\n"
-            "    Run: pip install openai-whisper"
+            "'faster-whisper' is not installed.\n"
+            "    Run: pip install faster-whisper"
         )
 
-    model = whisper.load_model(model_name)
+    model = WhisperModel(model_name, device="cpu", compute_type="int8")
 
     options: dict = {}
     if language:
         options["language"] = language
 
-    result = model.transcribe(str(wav_path), **options)
+    segments_gen, info = model.transcribe(str(wav_path), **options)
 
-    detected_lang = result.get("language", "unknown")
-    segments = result.get("segments", [])
+    # faster-whisper returns a lazy generator — consume it once
+    segments = list(segments_gen)
     if not segments:
         raise RuntimeError("No segments produced. Check that the file contains audio.")
 
     track = SubtitleTrack.from_whisper_segments(segments)
-    return track, detected_lang
+    return track, info.language
