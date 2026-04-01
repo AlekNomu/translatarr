@@ -6,6 +6,9 @@ import MoviesIndex from "./pages/MoviesIndex.vue";
 import MovieDetail from "./pages/MovieDetail.vue";
 import History from "./pages/History.vue";
 import SettingsGeneral from "./pages/SettingsGeneral.vue";
+import SettingsSonarr from "./pages/SettingsSonarr.vue";
+import SettingsRadarr from "./pages/SettingsRadarr.vue";
+import SettingsJellyfin from "./pages/SettingsJellyfin.vue";
 import SystemLogs from "./pages/SystemLogs.vue";
 import SystemStatus from "./pages/SystemStatus.vue";
 import SystemTasks from "./pages/SystemTasks.vue";
@@ -17,7 +20,10 @@ const routes = [
   { path: "/movies", component: MoviesIndex },
   { path: "/movies/:id", component: MovieDetail, props: true },
   { path: "/history", component: History },
-  { path: "/settings/general", component: SettingsGeneral },
+  { path: "/settings/general",  component: SettingsGeneral },
+  { path: "/settings/sonarr",   component: SettingsSonarr },
+  { path: "/settings/radarr",   component: SettingsRadarr },
+  { path: "/settings/jellyfin", component: SettingsJellyfin },
   { path: "/system/logs", component: SystemLogs },
   { path: "/system/status", component: SystemStatus },
   { path: "/system/tasks", component: SystemTasks },

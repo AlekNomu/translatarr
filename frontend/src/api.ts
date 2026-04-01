@@ -33,6 +33,10 @@ export const historyApi = {
 export const settingsApi = {
   get: () => api.get("/settings"),
   update: (data: Record<string, string>) => api.put("/settings", data),
+  testConnection: (
+    service: "sonarr" | "radarr" | "jellyfin",
+    config: Record<string, string>,
+  ) => api.post(`/settings/${service}/test`, config),
 };
 
 export const systemApi = {

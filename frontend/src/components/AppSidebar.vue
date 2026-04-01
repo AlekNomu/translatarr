@@ -24,6 +24,15 @@
         <router-link to="/settings/general" class="nav-item nav-item--child" active-class="active">
           <span class="nav-item__icon">&#x2699;</span> {{ lang.nav.general }}
         </router-link>
+        <router-link to="/settings/sonarr" class="nav-item nav-item--child" active-class="active">
+          {{ lang.nav.sonarr }}
+        </router-link>
+        <router-link to="/settings/radarr" class="nav-item nav-item--child" active-class="active">
+          {{ lang.nav.radarr }}
+        </router-link>
+        <router-link to="/settings/jellyfin" class="nav-item nav-item--child" active-class="active">
+          {{ lang.nav.jellyfin }}
+        </router-link>
       </div>
 
       <button class="nav-group" :class="{ open: systemOpen }" @click="systemOpen = !systemOpen">

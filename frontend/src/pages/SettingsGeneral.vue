@@ -1,104 +1,78 @@
 <template>
   <div>
+    <div class="page-actions">
+      <button class="btn btn--primary" :disabled="saving" @click="save">
+        {{ saving ? lang.actions.saving : lang.actions.saveSettings }}
+      </button>
+      <span v-if="saved" style="margin-left: 12px; color: var(--success)">{{ lang.actions.saved }}</span>
+    </div>
+
     <div class="card">
-      <form @submit.prevent="save">
-        <div class="form-group">
-          <label>{{ lang.settings.targetLanguage }}</label>
-          <select v-model="form.target_lang" class="form-select">
-            <option v-for="(name, code) in LANGUAGE_NAMES" :key="code" :value="code">
-              {{ name }} ({{ code }})
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>{{ lang.settings.whisperModel }}</label>
-          <select v-model="form.whisper_model" class="form-select">
-            <option
-              v-for="{ key, info } in sortedWhisperModels"
-              :key="key"
-              :value="key"
-            >
-              {{ info.label }}
-            </option>
-          </select>
-          <div class="form-help" v-if="currentModelInfo">
-            {{ currentModelInfo.description }}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>{{ lang.settings.concurrentWorkers }}</label>
+      <div class="form-group">
+        <label class="toggle">
           <input
-            v-model="form.workers"
-            type="number"
-            min="1"
-            max="6"
-            class="form-input"
-            style="max-width: 120px"
+            type="checkbox"
+            class="toggle__input"
+            v-model="form.generate_after_scan"
+            true-value="1"
+            false-value="0"
           />
-          <div class="form-help">{{ lang.settings.workersHelp }}</div>
-        </div>
+          <span class="toggle__track"></span>
+          <span class="toggle__label">{{ lang.settings.generateAutomatically }}</span>
+        </label>
+        <div class="form-help">{{ lang.settings.generateAfterScanHelp }}</div>
+      </div>
 
-        <div class="form-group">
-          <label>{{ lang.settings.seriesPath }}</label>
-          <div class="path-input" @click="openPicker('series_path')">
-            <span class="path-input__icon">&#x1F4C1;</span>
-            <span class="path-input__value" :class="{ placeholder: !form.series_path }">
-              {{ form.series_path || lang.settings.seriesPathPlaceholder }}
-            </span>
-          </div>
-          <div class="form-help">{{ lang.settings.seriesPathHelp }}</div>
-        </div>
+      <div class="form-group">
+        <label>{{ lang.settings.targetLanguage }}</label>
+        <select v-model="form.target_lang" class="form-select">
+          <option v-for="(name, code) in LANGUAGE_NAMES" :key="code" :value="code">
+            {{ name }} ({{ code }})
+          </option>
+        </select>
+      </div>
 
-        <div class="form-group">
-          <label>{{ lang.settings.moviesPath }}</label>
-          <div class="path-input" @click="openPicker('movies_path')">
-            <span class="path-input__icon">&#x1F4C1;</span>
-            <span class="path-input__value" :class="{ placeholder: !form.movies_path }">
-              {{ form.movies_path || lang.settings.moviesPathPlaceholder }}
-            </span>
-          </div>
-          <div class="form-help">{{ lang.settings.moviesPathHelp }}</div>
+      <div class="form-group">
+        <label>{{ lang.settings.whisperModel }}</label>
+        <select v-model="form.whisper_model" class="form-select">
+          <option
+            v-for="{ key, info } in sortedWhisperModels"
+            :key="key"
+            :value="key"
+          >
+            {{ info.label }}
+          </option>
+        </select>
+        <div class="form-help" v-if="currentModelInfo">
+          {{ currentModelInfo.description }}
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>{{ lang.settings.scanInterval }}</label>
-          <input
-            v-model="form.scan_interval_minutes"
-            type="number"
-            min="0"
-            class="form-input"
-            style="max-width: 120px"
-          />
-          <div class="form-help">{{ lang.settings.scanIntervalHelp }}</div>
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input
-              type="checkbox"
-              v-model="form.generate_after_scan"
-              true-value="1"
-              false-value="0"
-            />
-            {{ lang.settings.generateAfterScan }}
-          </label>
-          <div class="form-help">{{ lang.settings.generateAfterScanHelp }}</div>
-        </div>
-
-        <FolderPicker
-          v-if="pickerField"
-          :initial-path="form[pickerField]"
-          @select="onPickerSelect"
-          @cancel="pickerField = null"
+      <div class="form-group">
+        <label>{{ lang.settings.concurrentWorkers }}</label>
+        <input
+          v-model="form.workers"
+          type="number"
+          min="1"
+          max="6"
+          class="form-input"
+          style="max-width: 120px"
         />
+        <div class="form-help">{{ lang.settings.workersHelp }}</div>
+      </div>
 
-        <button type="submit" class="btn btn--primary" :disabled="saving">
-          {{ saving ? lang.actions.saving : lang.actions.saveSettings }}
-        </button>
-        <span v-if="saved" style="margin-left: 12px; color: var(--success)">{{ lang.actions.saved }}</span>
-      </form>
+      <div class="form-group">
+        <label>{{ lang.settings.scanInterval }}</label>
+        <input
+          v-model="form.scan_interval_minutes"
+          type="number"
+          min="0"
+          class="form-input"
+          style="max-width: 120px"
+        />
+        <div class="form-help">{{ lang.settings.scanIntervalHelp }}</div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -106,29 +80,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useSettingsStore } from "@/stores/settings";
-import FolderPicker from "@/components/FolderPicker.vue";
 import { lang, LANGUAGE_NAMES } from "@/lang";
 
 const store = useSettingsStore();
 const saving = ref(false);
 const saved = ref(false);
-const pickerField = ref<"series_path" | "movies_path" | null>(null);
-
-function openPicker(field: "series_path" | "movies_path") {
-  pickerField.value = field;
-}
-
-function onPickerSelect(path: string) {
-  if (pickerField.value) form[pickerField.value] = path;
-  pickerField.value = null;
-}
 
 const form = reactive({
   target_lang: "",
   whisper_model: "",
   workers: "",
-  series_path: "",
-  movies_path: "",
   scan_interval_minutes: "",
   generate_after_scan: "0",
 });
@@ -164,3 +125,55 @@ async function save() {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.page-actions {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle__track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--border, #d1d5db);
+  border-radius: 12px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle__track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.toggle__input:checked + .toggle__track {
+  background: var(--primary, #3b82f6);
+}
+.toggle__input:checked + .toggle__track::after {
+  transform: translateX(20px);
+}
+.toggle__label {
+  font-size: 0.9rem;
+}
+</style>

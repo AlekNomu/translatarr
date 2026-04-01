@@ -20,6 +20,24 @@ DEFAULT_SETTINGS: dict[str, str] = {
     "scan_interval_minutes": "360",
     "scan_on_startup": "1",
     "generate_after_scan": "0",
+    # Sonarr integration
+    "sonarr_enabled":      "0",
+    "sonarr_host":         "sonarr",
+    "sonarr_port":         "8989",
+    "sonarr_http_timeout": "60",
+    "sonarr_api_key":      "",
+    # Radarr integration
+    "radarr_enabled":      "0",
+    "radarr_host":         "radarr",
+    "radarr_port":         "7878",
+    "radarr_http_timeout": "60",
+    "radarr_api_key":      "",
+    # Jellyfin integration
+    "jellyfin_enabled":      "0",
+    "jellyfin_host":         "jellyfin",
+    "jellyfin_port":         "8096",
+    "jellyfin_http_timeout": "60",
+    "jellyfin_api_key":      "",
 }
 
 # Descriptions surfaced by the settings API so the frontend can display help text.

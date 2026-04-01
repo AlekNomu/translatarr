@@ -102,3 +102,28 @@ def test_whisper_model_info_has_description():
         assert "label" in info, f"Missing label for {key}"
         assert "description" in info, f"Missing description for {key}"
         assert "VRAM" in info["description"], f"Missing VRAM info for {key}"
+
+
+def test_seed_inserts_sonarr_radarr_jellyfin_defaults(mem_db):
+    seed_defaults(mem_db)
+    rows = mem_db.execute("SELECT key FROM settings").fetchall()
+    keys = {r["key"] for r in rows}
+    for service in ("sonarr", "radarr", "jellyfin"):
+        for field in ("enabled", "host", "port", "http_timeout", "api_key"):
+            key = f"{service}_{field}"
+            assert key in keys, f"Missing default key: {key}"
+
+
+def test_integration_defaults_values(mem_db):
+    seed_defaults(mem_db)
+    settings = load_settings(mem_db)
+    assert settings["sonarr_host"] == "sonarr"
+    assert settings["sonarr_port"] == "8989"
+    assert settings["radarr_host"] == "radarr"
+    assert settings["radarr_port"] == "7878"
+    assert settings["jellyfin_host"] == "jellyfin"
+    assert settings["jellyfin_port"] == "8096"
+    for service in ("sonarr", "radarr", "jellyfin"):
+        assert settings[f"{service}_enabled"] == "0"
+        assert settings[f"{service}_http_timeout"] == "60"
+        assert settings[f"{service}_api_key"] == ""

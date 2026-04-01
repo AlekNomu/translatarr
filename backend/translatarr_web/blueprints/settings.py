@@ -4,21 +4,30 @@
 
 from __future__ import annotations
 
+import json
 import string
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
+from translatarr_web.database import get_db
 from translatarr_web.settings import (
     WHISPER_MODEL_INFO,
     load_settings,
     save_settings,
 )
-from translatarr_web.database import get_db
 
 bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 
+_SUPPORTED_SERVICES = {"sonarr", "radarr", "jellyfin"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Settings CRUD
+# ─────────────────────────────────────────────────────────────────────────────
 
 @bp.route("", methods=["GET"])
 def get_settings():
@@ -82,3 +91,71 @@ def browse_path():
         parent = str(p.parent)
 
     return jsonify({"current": str(p), "parent": parent, "dirs": dirs})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Connection test
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _test_arr_connection(host: str, port: str, timeout: int, api_key: str) -> dict:
+    """Test connectivity to a Sonarr/Radarr-compatible *arr service."""
+    url = f"http://{host}:{port}/api/v3/system/status"
+    req = urllib.request.Request(url, headers={"X-Api-Key": api_key})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read())
+            return {"ok": True, "version": data.get("version", "unknown")}
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "error": f"HTTP {exc.code}: {exc.reason}"}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "error": str(exc.reason)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+def _test_jellyfin_connection(host: str, port: str, timeout: int, api_key: str) -> dict:
+    """Test connectivity to a Jellyfin server."""
+    url = f"http://{host}:{port}/System/Info"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f'MediaBrowser Token="{api_key}"'},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read())
+            return {"ok": True, "version": data.get("Version", "unknown")}
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "error": f"HTTP {exc.code}: {exc.reason}"}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "error": str(exc.reason)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+@bp.route("/<service>/test", methods=["POST"])
+def test_connection(service: str):
+    if service not in _SUPPORTED_SERVICES:
+        return jsonify({"error": f"Unknown service: {service}"}), 404
+
+    body = request.get_json(silent=True)
+    if not body or not isinstance(body, dict):
+        return jsonify({"ok": False, "error": "JSON body required"}), 400
+
+    host = body.get("host", "").strip()
+    port = body.get("port", "").strip()
+    api_key = body.get("api_key", "").strip()
+
+    if not host or not port:
+        return jsonify({"ok": False, "error": "host and port are required"}), 400
+
+    try:
+        timeout = int(body.get("http_timeout", "60"))
+    except ValueError:
+        timeout = 60
+
+    if service == "jellyfin":
+        result = _test_jellyfin_connection(host, port, timeout, api_key)
+    else:
+        result = _test_arr_connection(host, port, timeout, api_key)
+
+    return jsonify(result)
