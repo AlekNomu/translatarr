@@ -70,6 +70,27 @@ CREATE TABLE IF NOT EXISTS tasks (
     started_at  TEXT,
     finished_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS series_metadata (
+    series_name TEXT PRIMARY KEY,
+    sonarr_id   INTEGER,
+    overview    TEXT,
+    poster_url  TEXT,
+    fanart_url  TEXT,
+    status      TEXT,
+    last_aired  TEXT,
+    series_path TEXT,
+    fetched_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS movie_metadata (
+    file_path   TEXT PRIMARY KEY,
+    radarr_id   INTEGER,
+    overview    TEXT,
+    poster_url  TEXT,
+    movie_path  TEXT,
+    fetched_at  TEXT DEFAULT (datetime('now'))
+);
 """
 
 # ─────────────────────────────────────────────────────────────────────────────

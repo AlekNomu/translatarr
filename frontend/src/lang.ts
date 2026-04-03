@@ -130,6 +130,11 @@ export const lang = {
     episodes: "episodes",
     subtitled: "subtitled",
     noEpisodes: "No episodes found",
+    status: {
+      ended: "Ended",
+      continuing: "Continuing",
+      upcoming: "Upcoming",
+    },
     table: {
       episode: "Episode",
       title: "Title",

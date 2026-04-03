@@ -23,6 +23,9 @@ from translatarr.pipeline import run_from_mkv
 from translatarr_web.database import get_db
 from translatarr_web.scanner import scan_library
 from translatarr_web.settings import load_settings
+from translatarr_web.jellyfin import refresh_library
+from translatarr_web.radarr import sync_movie_metadata
+from translatarr_web.sonarr import sync_series_metadata
 
 logger = logging.getLogger("translatarr")
 
@@ -110,6 +113,21 @@ class TaskManager:
                 )
                 detail = f"added={result.added}, updated={result.updated}, removed={result.removed}"
                 self._update_task(db, task_id, status="completed", progress=100, detail=detail)
+
+                # ── Sonarr metadata sync (new or updated series)
+                synced = sync_series_metadata(db, settings)
+                if synced:
+                    detail += f", sonarr: {synced} series synced"
+
+                # ── Radarr metadata sync (new or updated movies)
+                synced_movies = sync_movie_metadata(db, settings)
+                if synced_movies:
+                    detail += f", radarr: {synced_movies} movies synced"
+
+                if synced or synced_movies:
+                    db.execute("UPDATE tasks SET detail = ? WHERE id = ?", (detail, task_id))
+                    db.commit()
+
                 if settings.get("generate_after_scan", "0") == "1":
                     pending = db.execute(
                         """SELECT id FROM media_items
@@ -185,6 +203,16 @@ class TaskManager:
                         (str(output_path), media_id),
                     )
                 db.commit()
+
+                # ── Jellyfin refresh when the subtitle queue drains
+                if result:
+                    remaining = db.execute(
+                        """SELECT COUNT(*) FROM tasks
+                           WHERE task_type = 'generate_subtitle'
+                           AND status IN ('queued', 'running')"""
+                    ).fetchone()[0]
+                    if remaining == 0 and refresh_library(settings):
+                        logger.info("Jellyfin library refresh triggered")
 
             except Exception as exc:
                 logger.error("Subtitle generation failed for %s: %s", mkv_path.name, exc)

@@ -8,6 +8,7 @@ export interface SeriesSummary {
   subtitled_count: number;
   first_season: number | null;
   last_season: number | null;
+  poster_url: string | null;
 }
 
 export interface Episode {
@@ -35,6 +36,7 @@ export interface Movie {
   target_srt_path: string | null;
   file_size: number | null;
   duration: number | null;
+  poster_url: string | null;
 }
 
 export const useLibraryStore = defineStore("library", () => {

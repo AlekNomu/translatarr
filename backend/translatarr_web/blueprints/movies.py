@@ -4,12 +4,42 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify
+import urllib.request
+
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from translatarr_web.database import get_db
 from translatarr_web.media import delete_subtitle_for_media
+from translatarr_web.settings import load_settings
 
 bp = Blueprint("movies", __name__, url_prefix="/api/movies")
+
+
+@bp.route("/radarr-image")
+def radarr_image():
+    """Proxy a Radarr media cover image through the backend."""
+    path = request.args.get("path", "")
+    if not path or not path.startswith("/"):
+        return "", 400
+    db = get_db()
+    settings = load_settings(db)
+    if settings.get("radarr_enabled", "0") != "1":
+        return "", 404
+    host = settings.get("radarr_host", "radarr")
+    port = settings.get("radarr_port", "7878")
+    api_key = settings.get("radarr_api_key", "")
+    try:
+        timeout = int(settings.get("radarr_http_timeout", "60"))
+    except ValueError:
+        timeout = 60
+    url = f"http://{host}:{port}{path}"
+    req = urllib.request.Request(url, headers={"X-Api-Key": api_key})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            content_type = resp.headers.get("Content-Type", "image/jpeg")
+            return Response(resp.read(), content_type=content_type)
+    except Exception:
+        return "", 404
 
 
 def _movie_row(r) -> dict:
@@ -24,6 +54,7 @@ def _movie_row(r) -> dict:
         "target_srt_path": r["target_srt_path"],
         "file_size": r["file_size"],
         "duration": r["duration"],
+        "poster_url": r["poster_url"] if "poster_url" in r.keys() else None,
     }
 
 
@@ -31,12 +62,14 @@ def _movie_row(r) -> dict:
 def list_movies():
     db = get_db()
     rows = db.execute("""
-        SELECT id, title, year, file_path,
-               has_source_srt, source_srt_label, has_target_srt, target_srt_path,
-               file_size, duration
-        FROM media_items
-        WHERE media_type = 'movie'
-        ORDER BY title
+        SELECT m.id, m.title, m.year, m.file_path,
+               m.has_source_srt, m.source_srt_label, m.has_target_srt, m.target_srt_path,
+               m.file_size, m.duration,
+               mm.poster_url
+        FROM media_items m
+        LEFT JOIN movie_metadata mm ON mm.file_path = m.file_path
+        WHERE m.media_type = 'movie'
+        ORDER BY m.title
     """).fetchall()
     return jsonify([_movie_row(r) for r in rows])
 
@@ -54,7 +87,24 @@ def movie_detail(movie_id: int):
 
     if not row:
         return jsonify({"error": "Movie not found"}), 404
-    return jsonify(_movie_row(row))
+
+    meta_row = db.execute(
+        "SELECT poster_url, overview, movie_path FROM movie_metadata WHERE file_path = ?",
+        (row["file_path"],),
+    ).fetchone()
+
+    metadata = (
+        {
+            "poster_url": meta_row["poster_url"],
+            "overview": meta_row["overview"],
+            "movie_path": meta_row["movie_path"],
+        }
+        if meta_row else None
+    )
+
+    result = _movie_row(row)
+    result["metadata"] = metadata
+    return jsonify(result)
 
 
 @bp.route("/<int:movie_id>/generate", methods=["POST"])

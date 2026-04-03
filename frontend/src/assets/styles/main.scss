@@ -98,9 +98,13 @@ a {
   }
 
   &__logo-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-hover);
+    padding: 3px;
+    flex-shrink: 0;
   }
 
   &__nav {

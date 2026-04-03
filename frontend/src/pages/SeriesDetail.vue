@@ -1,37 +1,62 @@
 <template>
   <div>
-    <div class="series-header">
+    <div v-if="!metadata" class="series-header">
       <h2>{{ name }}</h2>
-      <div style="display: flex; gap: 6px">
-        <button
-          class="btn btn--icon"
-          :disabled="generatingAll"
-          :title="generatingAll ? lang.series.queuing : lang.series.generateAllMissing"
-          @click="generateAll"
-        >
-          <span v-if="generatingAll" class="spinner" />
-          <svg v-else viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="6.5" cy="6.5" r="4"/>
-            <line x1="9.5" y1="9.5" x2="13.5" y2="13.5"/>
-          </svg>
-        </button>
-        <button
-          v-if="hasAnySubtitle"
-          class="btn btn--icon btn--icon-danger"
-          :disabled="deletingAll"
-          :title="lang.series.deleteAllSubtitles"
-          @click="pendingDelete = { type: 'series' }"
-        >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="4" y1="4" x2="12" y2="12"/>
-            <line x1="12" y1="4" x2="4" y2="12"/>
-          </svg>
-        </button>
+    </div>
+
+    <div v-if="metadata" class="series-meta">
+      <img
+        v-if="metadata.poster_url"
+        :src="posterSrc(metadata.poster_url)"
+        class="series-meta__poster"
+        alt=""
+      />
+      <div class="series-meta__body">
+        <h2 class="series-meta__title">{{ name }}</h2>
+        <div class="series-chips">
+          <span v-if="metadata.series_path" class="chip">📁 {{ metadata.series_path }}</span>
+          <span class="chip">📺 {{ episodes.length }} {{ episodes.length > 1 ? lang.series.episodes : lang.series.episode }}</span>
+          <span class="chip" :class="missingCount === 0 ? 'chip--success' : 'chip--warning'">
+            {{ missingCount === 0 ? '✅' : '⚠️' }} {{ missingCount }} missing
+          </span>
+          <span v-if="metadata.status" class="chip" :class="metadata.status === 'ended' ? 'chip--muted' : 'chip--success'">
+            {{ statusLabel(metadata.status) }}
+          </span>
+          <span v-if="metadata.last_aired" class="chip">📅 {{ formatDate(metadata.last_aired) }}</span>
+        </div>
+        <p v-if="metadata.overview" class="series-meta__overview">{{ metadata.overview }}</p>
       </div>
     </div>
 
     <div v-if="seasons.length === 0" class="empty-state">
       <div class="empty-state__title">{{ lang.series.noEpisodes }}</div>
+    </div>
+
+    <div v-if="seasons.length > 0" class="seasons-actions">
+      <button
+        class="btn btn--icon"
+        :disabled="generatingAll"
+        :title="generatingAll ? lang.series.queuing : lang.series.generateAllMissing"
+        @click="generateAll"
+      >
+        <span v-if="generatingAll" class="spinner" />
+        <svg v-else viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="6.5" cy="6.5" r="4"/>
+          <line x1="9.5" y1="9.5" x2="13.5" y2="13.5"/>
+        </svg>
+      </button>
+      <button
+        v-if="hasAnySubtitle"
+        class="btn btn--icon btn--icon-danger"
+        :disabled="deletingAll"
+        :title="lang.series.deleteAllSubtitles"
+        @click="pendingDelete = { type: 'series' }"
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="4" x2="12" y2="12"/>
+          <line x1="12" y1="4" x2="4" y2="12"/>
+        </svg>
+      </button>
     </div>
 
     <div v-for="season in seasons" :key="season.number" class="season">
@@ -164,8 +189,17 @@ interface SeasonGroup {
   missing: number;
 }
 
+interface SeriesMetadata {
+  poster_url: string | null
+  overview: string | null
+  status: string | null
+  last_aired: string | null
+  series_path: string | null
+}
+
 const props = defineProps<{ name: string }>();
 const episodes = ref<Episode[]>([]);
+const metadata = ref<SeriesMetadata | null>(null);
 const generatingAll = ref(false);
 const generatingSeasons = ref(new Set<number>());
 const generatingEpisodes = ref(new Set<number>());
@@ -192,6 +226,15 @@ const seasons = computed<SeasonGroup[]>(() => {
 });
 
 const hasAnySubtitle = computed(() => episodes.value.some(e => e.has_target_srt));
+const missingCount = computed(() => episodes.value.filter(e => !e.has_target_srt).length);
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function statusLabel(status: string): string {
+  return (lang.series.status as Record<string, string>)[status] ?? status;
+}
 
 const confirmMessage = computed(() => {
   if (!pendingDelete.value) return "";
@@ -213,9 +256,15 @@ function toggleSeason(number: number) {
   openSeasons.value = next;
 }
 
+function posterSrc(url: string): string {
+  if (url.startsWith("/mediacover")) return `/api/series/sonarr-image?path=${encodeURIComponent(url)}`;
+  return url;
+}
+
 async function load() {
   const { data } = await seriesApi.detail(props.name);
   episodes.value = data.episodes;
+  metadata.value = data.metadata ?? null;
 }
 
 async function generateAll() {
@@ -302,6 +351,77 @@ onUnmounted(() => tasksStore.stopScanWatcher());
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
+
+.seasons-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  margin-bottom: 4px;
+}
+
+
+.series-meta {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.series-meta__poster {
+  width: 120px;
+  min-width: 120px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  aspect-ratio: 2/3;
+  background: var(--bg-hover);
+  display: block;
+}
+
+.series-meta__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.series-meta__title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.series-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.chip--success { border-color: var(--success); color: var(--success-light); }
+.chip--warning { border-color: var(--warning); color: var(--warning); }
+.chip--muted   { color: var(--text-muted); }
+
+.series-meta__overview {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .season {
