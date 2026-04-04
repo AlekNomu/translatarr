@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import urllib.parse
 import urllib.request
 
 from flask import Blueprint, Response, current_app, jsonify, request
@@ -42,7 +43,14 @@ def radarr_image():
         return "", 404
 
 
+def _proxy_poster(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    return f"/api/movies/radarr-image?path={urllib.parse.quote(raw)}"
+
+
 def _movie_row(r) -> dict:
+    raw_poster = r["poster_url"] if "poster_url" in r.keys() else None
     return {
         "id": r["id"],
         "title": r["title"],
@@ -54,7 +62,7 @@ def _movie_row(r) -> dict:
         "target_srt_path": r["target_srt_path"],
         "file_size": r["file_size"],
         "duration": r["duration"],
-        "poster_url": r["poster_url"] if "poster_url" in r.keys() else None,
+        "poster_url": _proxy_poster(raw_poster),
     }
 
 
@@ -95,7 +103,7 @@ def movie_detail(movie_id: int):
 
     metadata = (
         {
-            "poster_url": meta_row["poster_url"],
+            "poster_url": _proxy_poster(meta_row["poster_url"]),
             "overview": meta_row["overview"],
             "movie_path": meta_row["movie_path"],
         }

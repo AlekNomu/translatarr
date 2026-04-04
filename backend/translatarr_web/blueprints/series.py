@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import urllib.parse
 import urllib.request
 
 from flask import Blueprint, Response, current_app, jsonify, request
@@ -42,6 +43,12 @@ def sonarr_image():
         return "", 404
 
 
+def _proxy_poster(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    return f"/api/series/sonarr-image?path={urllib.parse.quote(raw)}"
+
+
 @bp.route("", methods=["GET"])
 def list_series():
     """Return distinct series with episode counts, subtitle coverage, and poster URL."""
@@ -68,7 +75,7 @@ def list_series():
             "subtitled_count": r["subtitled_count"],
             "first_season": r["first_season"],
             "last_season": r["last_season"],
-            "poster_url": r["poster_url"],
+            "poster_url": _proxy_poster(r["poster_url"]),
         }
         for r in rows
     ])
@@ -114,7 +121,7 @@ def series_detail(name: str):
 
     metadata = (
         {
-            "poster_url": meta_row["poster_url"],
+            "poster_url": _proxy_poster(meta_row["poster_url"]),
             "overview": meta_row["overview"],
             "status": meta_row["status"],
             "last_aired": meta_row["last_aired"],

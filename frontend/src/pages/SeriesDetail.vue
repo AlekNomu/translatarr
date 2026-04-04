@@ -7,7 +7,7 @@
     <div v-if="metadata" class="series-meta">
       <img
         v-if="metadata.poster_url"
-        :src="posterSrc(metadata.poster_url)"
+        :src="metadata.poster_url"
         class="series-meta__poster"
         alt=""
       />
@@ -256,10 +256,6 @@ function toggleSeason(number: number) {
   openSeasons.value = next;
 }
 
-function posterSrc(url: string): string {
-  if (url.startsWith("/")) return `/api/series/sonarr-image?path=${encodeURIComponent(url)}`;
-  return url;
-}
 
 async function load() {
   const { data } = await seriesApi.detail(props.name);

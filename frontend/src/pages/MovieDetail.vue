@@ -33,7 +33,7 @@
     <div v-if="metadata" class="movie-meta">
       <img
         v-if="metadata.poster_url"
-        :src="posterSrc(metadata.poster_url)"
+        :src="metadata.poster_url"
         class="movie-meta__poster"
         alt=""
       />
@@ -89,11 +89,6 @@ const movie = ref<Movie | null>(null);
 const metadata = ref<MovieMetadata | null>(null);
 const showConfirm = ref(false);
 const generating = ref(false);
-
-function posterSrc(url: string): string {
-  if (url.startsWith("/")) return `/api/movies/radarr-image?path=${encodeURIComponent(url)}`;
-  return url;
-}
 
 async function load() {
   const { data } = await moviesApi.detail(Number(props.id));

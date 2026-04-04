@@ -59,14 +59,20 @@ def target_srt_tags(lang: str) -> tuple[str, ...]:
 
 
 def find_srt_by_lang(mkv_path: Path, lang_tags: tuple[str, ...]) -> Path | None:
-    """Look for an existing .srt next to the MKV file matching one of the language tags."""
+    """Look for an existing .srt next to the MKV file matching one of the language tags.
+
+    Checks plain (.fr.srt) first, then HI/SDH/CC variants (.fr.hi.srt, .fr.sdh.srt, …).
+    """
     stem = mkv_path.stem
     parent = mkv_path.parent
     for tag in lang_tags:
-        suffix = f".{tag}.srt" if tag else ".srt"
-        candidate = parent / f"{stem}{suffix}"
+        candidate = parent / f"{stem}.{tag}.srt"
         if candidate.exists():
             return candidate
+        for hi in _HI_MARKERS:
+            candidate = parent / f"{stem}.{tag}.{hi}.srt"
+            if candidate.exists():
+                return candidate
     return None
 
 
