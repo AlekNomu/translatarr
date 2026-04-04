@@ -22,7 +22,7 @@ def init_scheduler(
     app: Flask, task_manager: TaskManager, interval_minutes: int, scan_on_startup: bool
 ) -> BackgroundScheduler:
     """Create and start the background scheduler."""
-    scheduler = BackgroundScheduler(daemon=True)
+    scheduler = BackgroundScheduler(daemon=True, timezone="UTC")
 
     def _trigger_scan() -> None:
         logger.info("Scheduled scan triggered")

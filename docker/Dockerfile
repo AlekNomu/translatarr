@@ -21,13 +21,12 @@ ENV UV_SYSTEM_PYTHON=1
 
 COPY pyproject.toml README.md LICENSE ./
 COPY backend/ backend/
+COPY --from=frontend-build /app/backend/translatarr_web/static/ backend/translatarr_web/static/
 
 RUN uv pip install --no-cache . \
     && find /usr/local/lib/python3.13 -name '*.pyc' -delete \
     && find /usr/local/lib/python3.13 -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true \
     && rm /usr/local/bin/uv
-
-COPY --from=frontend-build /app/backend/translatarr_web/static/ backend/translatarr_web/static/
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
