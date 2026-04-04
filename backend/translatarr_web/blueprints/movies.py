@@ -33,8 +33,10 @@ def radarr_image():
         timeout = int(settings.get("radarr_http_timeout", "60"))
     except ValueError:
         timeout = 60
-    url = f"http://{host}:{port}{path}"
-    req = urllib.request.Request(url, headers={"X-Api-Key": api_key})
+    # Strip cache-busting query params; pass apikey as query param (required for /MediaCover/)
+    image_path = path.split("?")[0]
+    url = f"http://{host}:{port}{image_path}?apikey={urllib.parse.quote(api_key)}"
+    req = urllib.request.Request(url)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "image/jpeg")
