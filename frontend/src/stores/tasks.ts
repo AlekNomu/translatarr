@@ -17,10 +17,12 @@ export interface Task {
 export const useTasksStore = defineStore("tasks", () => {
   const tasks = ref<Task[]>([]);
   const scanVersion = ref(0);
+  const subtitleVersion = ref(0);
 
   let _pollInterval: ReturnType<typeof setInterval> | null = null;
   let _watcherCount = 0;
   let _hadActiveScan = false;
+  let _hadActiveSubtitle = false;
 
   async function fetchTasks() {
     const { data } = await tasksApi.list();
@@ -42,6 +44,9 @@ export const useTasksStore = defineStore("tasks", () => {
       _hadActiveScan = data.some(
         (t: Task) => t.task_type === "scan" && (t.status === "running" || t.status === "queued"),
       );
+      _hadActiveSubtitle = data.some(
+        (t: Task) => t.task_type === "generate_subtitle" && (t.status === "running" || t.status === "queued"),
+      );
     });
 
     _pollInterval = setInterval(async () => {
@@ -49,10 +54,17 @@ export const useTasksStore = defineStore("tasks", () => {
       const hasActiveScan = data.some(
         (t: Task) => t.task_type === "scan" && (t.status === "running" || t.status === "queued"),
       );
+      const hasActiveSubtitle = data.some(
+        (t: Task) => t.task_type === "generate_subtitle" && (t.status === "running" || t.status === "queued"),
+      );
       if (_hadActiveScan && !hasActiveScan) {
         scanVersion.value++;
       }
+      if (_hadActiveSubtitle && !hasActiveSubtitle) {
+        subtitleVersion.value++;
+      }
       _hadActiveScan = hasActiveScan;
+      _hadActiveSubtitle = hasActiveSubtitle;
     }, 3000);
   }
 
@@ -64,5 +76,5 @@ export const useTasksStore = defineStore("tasks", () => {
     }
   }
 
-  return { tasks, scanVersion, fetchTasks, triggerScan, startScanWatcher, stopScanWatcher };
+  return { tasks, scanVersion, subtitleVersion, fetchTasks, triggerScan, startScanWatcher, stopScanWatcher };
 });

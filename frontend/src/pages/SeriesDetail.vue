@@ -267,7 +267,7 @@ async function generateAll() {
   generatingAll.value = true;
   try {
     await seriesApi.generate(props.name);
-  } finally {
+  } catch {
     generatingAll.value = false;
   }
 }
@@ -276,7 +276,7 @@ async function generateSeason(seasonNumber: number) {
   generatingSeasons.value = new Set(generatingSeasons.value).add(seasonNumber);
   try {
     await seriesApi.generateSeason(props.name, seasonNumber);
-  } finally {
+  } catch {
     const next = new Set(generatingSeasons.value);
     next.delete(seasonNumber);
     generatingSeasons.value = next;
@@ -287,7 +287,7 @@ async function generateEpisode(id: number) {
   generatingEpisodes.value = new Set(generatingEpisodes.value).add(id);
   try {
     await seriesApi.generateEpisode(props.name, id);
-  } finally {
+  } catch {
     const next = new Set(generatingEpisodes.value);
     next.delete(id);
     generatingEpisodes.value = next;
@@ -332,6 +332,12 @@ watch(() => props.name, () => {
 });
 
 watch(() => tasksStore.scanVersion, load);
+watch(() => tasksStore.subtitleVersion, () => {
+  generatingAll.value = false;
+  generatingSeasons.value = new Set();
+  generatingEpisodes.value = new Set();
+  load();
+});
 
 onMounted(() => {
   load();

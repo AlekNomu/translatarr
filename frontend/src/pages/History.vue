@@ -103,6 +103,7 @@ function actionBadge(action: string): string {
     resynced: "badge badge--info",
     skipped: "badge badge--warning",
     failed: "badge badge--danger",
+    deleted: "badge badge--danger",
   };
   return map[action] || "badge";
 }

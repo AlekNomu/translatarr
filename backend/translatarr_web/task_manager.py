@@ -163,6 +163,9 @@ class TaskManager:
                 self._update_task(db, task_id, status="failed", detail="Media not found")
                 return
 
+            media_title = row["title"] or Path(row["file_path"]).name
+            self._update_task(db, task_id, detail=media_title)
+
             settings = load_settings(db)
             mkv_path = Path(row["file_path"])
             target_lang = settings.get("target_lang", "fr")

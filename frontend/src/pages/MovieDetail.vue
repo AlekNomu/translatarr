@@ -69,11 +69,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { moviesApi } from "@/api";
 import type { Movie } from "@/stores/library";
 import { lang } from "@/lang";
 import { useSettingsStore } from "@/stores/settings";
+import { useTasksStore } from "@/stores/tasks";
 import ConfirmModal from "@/components/ConfirmModal.vue";
 
 interface MovieMetadata {
@@ -83,6 +84,7 @@ interface MovieMetadata {
 }
 
 const settingsStore = useSettingsStore();
+const tasksStore = useTasksStore();
 
 const props = defineProps<{ id: string }>();
 const movie = ref<Movie | null>(null);
@@ -100,7 +102,7 @@ async function generate() {
   generating.value = true;
   try {
     await moviesApi.generate(Number(props.id));
-  } finally {
+  } catch {
     generating.value = false;
   }
 }
@@ -117,7 +119,17 @@ watch(() => props.id, () => {
   load();
 });
 
-onMounted(load);
+watch(() => tasksStore.subtitleVersion, () => {
+  generating.value = false;
+  load();
+});
+
+onMounted(() => {
+  load();
+  tasksStore.startScanWatcher();
+});
+
+onUnmounted(() => tasksStore.stopScanWatcher());
 </script>
 
 <style scoped>
