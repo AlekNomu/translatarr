@@ -13,7 +13,7 @@ from flask import Blueprint, Response, current_app, jsonify
 from translatarr import __version__
 
 try:
-    import whisper  # type: ignore  # noqa: F401
+    import faster_whisper  # type: ignore  # noqa: F401
     _WHISPER_AVAILABLE = True
 except ImportError:
     _WHISPER_AVAILABLE = False

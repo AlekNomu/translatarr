@@ -72,8 +72,8 @@ docker run -d \
   -e TZ=Europe/Paris \
   -p 6868:6868 \
   -v /path/to/translatarr/config:/config \
-  -v /path/to/movies:/movies `# optional` \
-  -v /path/to/tv:/tv `# optional` \
+  -v /path/to/movies:/movies \
+  -v /path/to/tv:/tv \
   --restart unless-stopped \
   aleknomu/translatarr:latest
 ```
@@ -95,8 +95,8 @@ services:
       - TZ=Europe/Paris
     volumes:
       - /path/to/translatarr/config:/config
-      - /path/to/movies:/movies    # optional
-      - /path/to/tv:/tv            # optional
+      - /path/to/movies:/movies
+      - /path/to/tv:/tv
     ports:
       - "6868:6868"
     restart: unless-stopped

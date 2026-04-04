@@ -143,7 +143,7 @@ class TestSyncMovieMetadata:
         sync_movie_metadata(mem_db, _RADARR_SETTINGS)
         row = mem_db.execute("SELECT * FROM movie_metadata").fetchone()
         assert row["overview"] == "A thief who steals corporate secrets."
-        assert row["poster_url"] == "/mediacover/1/poster.jpg"
+        assert row["poster_url"] == "http://radarr:7878/mediacover/1/poster.jpg"
         assert row["movie_path"] == "/movies/Inception (2010)"
 
     @patch("translatarr_web.radarr.fetch_movie_list", return_value=_RADARR_MOVIES)

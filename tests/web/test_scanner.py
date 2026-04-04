@@ -55,6 +55,18 @@ class TestParseMovieTitle:
         assert title == "Unknown Movie"
         assert year is None
 
+    def test_radarr_dot_separated(self, tmp_path):
+        p = tmp_path / "A.Silent.Voice.2016.1080p.BluRay.x264-HAiKU.mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "A Silent Voice"
+        assert year == 2016
+
+    def test_radarr_dot_separated_with_group_tag(self, tmp_path):
+        p = tmp_path / "The.Dark.Knight.2008.1080p.BluRay.x264-GROUP[EtHD].mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "The Dark Knight"
+        assert year == 2008
+
 
 # ── scan_library ──────────────────────────────────────────────────────────────
 
@@ -100,6 +112,20 @@ class TestScanLibrary:
 
         row = scan_db.execute("SELECT has_source_srt FROM media_items").fetchone()
         assert row["has_source_srt"] == 1
+
+    def test_detects_embedded_target_srt(self, scan_db, tmp_path, monkeypatch):
+        movies_dir = tmp_path / "movies"
+        movies_dir.mkdir()
+        mkv = movies_dir / "Inception (2010).mkv"
+        mkv.write_bytes(b"")
+
+        import translatarr_web.scanner as scanner_mod
+        monkeypatch.setattr(scanner_mod, "find_embedded_sub_by_lang", lambda path, tags: 12)
+
+        scan_library(scan_db, series_path="/nonexistent", movies_path=str(movies_dir))
+
+        row = scan_db.execute("SELECT has_target_srt FROM media_items").fetchone()
+        assert row["has_target_srt"] == 1
 
     def test_detects_existing_target_srt(self, scan_db, tmp_path):
         movies_dir = tmp_path / "movies"

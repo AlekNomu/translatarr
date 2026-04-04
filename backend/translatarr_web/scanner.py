@@ -13,6 +13,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from translatarr.audio import find_embedded_sub_by_lang
 from translatarr.pipeline import find_source_srt_with_label, find_srt_by_lang, target_srt_tags
 
 logger = logging.getLogger("translatarr")
@@ -22,11 +23,12 @@ logger = logging.getLogger("translatarr")
 # ─────────────────────────────────────────────────────────────────────────────
 
 _EPISODE_RE = re.compile(r"[Ss](\d+)[Ee](\d+)")
-_YEAR_RE = re.compile(r"\((\d{4})\)")
+_YEAR_PAREN_RE = re.compile(r"\((\d{4})\)")
+_YEAR_SEP_RE = re.compile(r"(?<=\s)(\d{4})(?=\s|$)")
 # Sonarr-style: "Show Name (2022) - S01E03 - Episode Title (...).mkv"
 _SONARR_RE = re.compile(
     r"^(?P<series>.+?)\s*\(\d{4}\)\s*-\s*S(?P<season>\d+)E(?P<episode>\d+)"
-    r"\s*-\s*(?P<title>.+?)(?:\s*\(.*\))*\.mkv$",
+    r"\s*-\s*(?P<title>.+?)(?:\s*\(.*\))*\.(?:mkv|mp4)$",
     re.IGNORECASE,
 )
 
@@ -59,11 +61,16 @@ def _parse_episode(path: Path) -> dict | None:
 def _parse_movie_title(path: Path) -> tuple[str, int | None]:
     """Extract title and optional year from a movie filename."""
     stem = path.stem
-    year_m = _YEAR_RE.search(stem)
-    if year_m:
-        title = stem[: year_m.start()].strip()
-        return title, int(year_m.group(1))
-    return stem, None
+    m = _YEAR_PAREN_RE.search(stem)
+    if m:
+        return stem[: m.start()].strip(), int(m.group(1))
+    clean = stem.replace(".", " ")
+    m = _YEAR_SEP_RE.search(clean)
+    if m:
+        year_val = int(m.group(1))
+        if 1900 <= year_val <= 2099:
+            return clean[: m.start()].strip(), year_val
+    return clean, None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -95,34 +102,38 @@ def scan_library(
 
     discovered: dict[str, dict] = {}
 
+    _VIDEO_GLOBS = ("*.mkv", "*.mp4")
+
     if series_dir.is_dir():
-        for mkv in series_dir.rglob("*.mkv"):
-            ep = _parse_episode(mkv)
-            if ep:
-                discovered[str(mkv)] = {
-                    "media_type": "episode",
-                    "file_path": str(mkv),
-                    "title": ep["title"],
-                    "series_name": ep["series_name"],
-                    "season": ep["season"],
-                    "episode": ep["episode"],
-                    "year": None,
-                }
-            else:
-                logger.debug("Skipping unrecognised file in series directory: %s", mkv.name)
+        for glob in _VIDEO_GLOBS:
+            for mkv in series_dir.rglob(glob):
+                ep = _parse_episode(mkv)
+                if ep:
+                    discovered[str(mkv)] = {
+                        "media_type": "episode",
+                        "file_path": str(mkv),
+                        "title": ep["title"],
+                        "series_name": ep["series_name"],
+                        "season": ep["season"],
+                        "episode": ep["episode"],
+                        "year": None,
+                    }
+                else:
+                    logger.debug("Skipping unrecognised file in series directory: %s", mkv.name)
 
     if movies_dir.is_dir():
-        for mkv in movies_dir.rglob("*.mkv"):
-            title, year = _parse_movie_title(mkv)
-            discovered[str(mkv)] = {
-                "media_type": "movie",
-                "file_path": str(mkv),
-                "title": title,
-                "year": year,
-                "series_name": None,
-                "season": None,
-                "episode": None,
-            }
+        for glob in _VIDEO_GLOBS:
+            for mkv in movies_dir.rglob(glob):
+                title, year = _parse_movie_title(mkv)
+                discovered[str(mkv)] = {
+                    "media_type": "movie",
+                    "file_path": str(mkv),
+                    "title": title,
+                    "year": year,
+                    "series_name": None,
+                    "season": None,
+                    "episode": None,
+                }
 
     # ── Check subtitle presence for discovered files ──────────────────────
     lang_tags = target_srt_tags(target_lang)
@@ -132,7 +143,8 @@ def scan_library(
         meta["has_source_srt"] = 1 if source_label else 0
         meta["source_srt_label"] = source_label
         target_srt = find_srt_by_lang(mkv, lang_tags)
-        meta["has_target_srt"] = 1 if target_srt else 0
+        has_target = bool(target_srt) or find_embedded_sub_by_lang(mkv, lang_tags) is not None
+        meta["has_target_srt"] = 1 if has_target else 0
         meta["target_srt_path"] = str(target_srt) if target_srt else None
         try:
             meta["file_size"] = mkv.stat().st_size

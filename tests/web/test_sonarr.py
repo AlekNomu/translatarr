@@ -34,6 +34,20 @@ def _insert_episode(db: sqlite3.Connection, series_name: str, file_path: str) ->
     db.commit()
 
 
+_SONARR_SERIES_COLON = [
+    {
+        "id": 10,
+        "title": "Motherland: Fort Salem",
+        "overview": "Witches in the military.",
+        "status": "ended",
+        "previousAiring": None,
+        "path": "/tv/Motherland - Fort Salem",
+        "images": [
+            {"coverType": "poster", "url": "/mediacover/10/poster.jpg"},
+        ],
+    },
+]
+
 _SONARR_SERIES = [
     {
         "id": 1,
@@ -152,8 +166,8 @@ class TestSyncSeriesMetadata:
             "SELECT * FROM series_metadata WHERE series_name = 'Breaking Bad'"
         ).fetchone()
         assert row["overview"] == "A chemistry teacher turns to crime."
-        assert row["poster_url"] == "/mediacover/1/poster-250.jpg"
-        assert row["fanart_url"] == "/mediacover/1/fanart.jpg"
+        assert row["poster_url"] == "http://sonarr:8989/mediacover/1/poster-250.jpg"
+        assert row["fanart_url"] == "http://sonarr:8989/mediacover/1/fanart.jpg"
         assert row["status"] == "ended"
         assert row["last_aired"] == "2013-09-29T00:00:00Z"
         assert row["series_path"] == "/tv/Breaking Bad (2008)"
@@ -186,3 +200,13 @@ class TestSyncSeriesMetadata:
         _insert_episode(mem_db, "Unknown Show", "/tv/Unknown Show/S01E01.mkv")
         count = sync_series_metadata(mem_db, _SONARR_SETTINGS)
         assert count == 0
+
+    @patch("translatarr_web.sonarr.fetch_series_list", return_value=_SONARR_SERIES_COLON)
+    def test_matches_colon_title_against_dash_folder(self, _mock, mem_db):
+        # Sonarr title has colon ("Motherland: Fort Salem") but folder on disk uses dash.
+        # Paths differ (different mount points) so only title-based fallback is available.
+        _insert_episode(mem_db, "Motherland - Fort Salem", "/mnt/nas/tv/Motherland - Fort Salem/S01E01.mkv")
+        count = sync_series_metadata(mem_db, _SONARR_SETTINGS)
+        assert count == 1
+        row = mem_db.execute("SELECT sonarr_id FROM series_metadata").fetchone()
+        assert row["sonarr_id"] == 10

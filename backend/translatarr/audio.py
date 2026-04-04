@@ -122,6 +122,35 @@ def find_embedded_sub_index(video_path: Path) -> int | None:
     return text_streams[0]["index"]
 
 
+def find_embedded_sub_by_lang(video_path: Path, lang_tags: tuple[str, ...]) -> int | None:
+    """Return the stream index of the first embedded text subtitle matching any of the given
+    language tags, or *None* if no match is found."""
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error",
+                "-select_streams", "s",
+                "-show_entries", "stream=index,codec_name:stream_tags=language",
+                "-of", "json",
+                str(video_path),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return None
+
+    data = json.loads(result.stdout)
+    for s in data.get("streams", []):
+        if s.get("codec_name", "") not in TEXT_CODECS:
+            continue
+        lang = s.get("tags", {}).get("language", "").lower()
+        if lang in lang_tags:
+            return s["index"]
+    return None
+
+
 def extract_subtitle(video_path: Path, stream_index: int, srt_path: Path) -> None:
     """Extract a subtitle stream from *video_path* to an SRT file."""
     cmd = [
