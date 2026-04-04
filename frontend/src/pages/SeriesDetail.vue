@@ -257,7 +257,7 @@ function toggleSeason(number: number) {
 }
 
 function posterSrc(url: string): string {
-  if (url.startsWith("/mediacover")) return `/api/series/sonarr-image?path=${encodeURIComponent(url)}`;
+  if (url.startsWith("/")) return `/api/series/sonarr-image?path=${encodeURIComponent(url)}`;
   return url;
 }
 

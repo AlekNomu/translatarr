@@ -91,7 +91,7 @@ const showConfirm = ref(false);
 const generating = ref(false);
 
 function posterSrc(url: string): string {
-  if (url.startsWith("/mediacover")) return `/api/movies/radarr-image?path=${encodeURIComponent(url)}`;
+  if (url.startsWith("/")) return `/api/movies/radarr-image?path=${encodeURIComponent(url)}`;
   return url;
 }
 

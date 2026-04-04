@@ -71,6 +71,15 @@ function formatUptime(seconds: number): string {
   return `${s}s`;
 }
 
+function isNewerVersion(remote: string, local: string): boolean {
+  const parse = (v: string) => v.split(".").map(Number);
+  const [rMaj, rMin, rPat] = parse(remote);
+  const [lMaj, lMin, lPat] = parse(local);
+  if (rMaj !== lMaj) return rMaj > lMaj;
+  if (rMin !== lMin) return rMin > lMin;
+  return rPat > lPat;
+}
+
 onMounted(async () => {
   const { data } = await systemApi.status();
   status.value = data;
@@ -80,7 +89,7 @@ onMounted(async () => {
     if (res.ok) {
       const json = await res.json();
       const tag = (json.tag_name as string).replace(/^v/, "");
-      if (tag !== data.version) {
+      if (isNewerVersion(tag, data.version)) {
         latestVersion.value = tag;
         updateAvailable.value = true;
       }

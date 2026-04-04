@@ -30,20 +30,14 @@ def fetch_series_list(host: str, port: str, api_key: str, timeout: int) -> list[
         return json.loads(resp.read())
 
 
-def build_metadata_row(sonarr_series: dict, base_url: str = "") -> dict:
+def build_metadata_row(sonarr_series: dict) -> dict:
     """Extract storable metadata fields from a Sonarr series object."""
     images = {img["coverType"]: img["url"] for img in sonarr_series.get("images", [])}
-
-    def _abs(url: str | None) -> str | None:
-        if url and url.startswith("/"):
-            return base_url + url
-        return url
-
     return {
         "sonarr_id":   sonarr_series.get("id"),
         "overview":    sonarr_series.get("overview") or "",
-        "poster_url":  _abs(images.get("poster")),
-        "fanart_url":  _abs(images.get("fanart")),
+        "poster_url":  images.get("poster"),
+        "fanart_url":  images.get("fanart"),
         "status":      sonarr_series.get("status"),
         "last_aired":  sonarr_series.get("previousAiring"),
         "series_path": sonarr_series.get("path"),
@@ -127,7 +121,7 @@ def sync_series_metadata(db: sqlite3.Connection, settings: dict) -> int:
         if match is None:
             continue
 
-        meta = build_metadata_row(match, base_url=f"http://{host}:{port}")
+        meta = build_metadata_row(match)
         db.execute(
             """INSERT INTO series_metadata
                    (series_name, sonarr_id, overview, poster_url, fanart_url,

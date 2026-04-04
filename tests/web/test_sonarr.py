@@ -166,8 +166,8 @@ class TestSyncSeriesMetadata:
             "SELECT * FROM series_metadata WHERE series_name = 'Breaking Bad'"
         ).fetchone()
         assert row["overview"] == "A chemistry teacher turns to crime."
-        assert row["poster_url"] == "http://sonarr:8989/mediacover/1/poster-250.jpg"
-        assert row["fanart_url"] == "http://sonarr:8989/mediacover/1/fanart.jpg"
+        assert row["poster_url"] == "/mediacover/1/poster-250.jpg"
+        assert row["fanart_url"] == "/mediacover/1/fanart.jpg"
         assert row["status"] == "ended"
         assert row["last_aired"] == "2013-09-29T00:00:00Z"
         assert row["series_path"] == "/tv/Breaking Bad (2008)"
