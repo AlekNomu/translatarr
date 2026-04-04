@@ -31,6 +31,9 @@ translatarr = "translatarr_web.translatarr:main"
 where = ["backend"]
 include = ["translatarr*", "translatarr_web*"]
 
+[tool.setuptools.package-data]
+translatarr_web = ["static/**/*"]
+
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
 addopts      = "-v --tb=short"
