@@ -48,29 +48,26 @@ def update_settings():
     return jsonify(load_settings(get_db()))
 
 
+def _list_windows_drives():
+    drives = [
+        {"name": f"{d}:\\", "path": f"{d}:\\"}
+        for d in string.ascii_uppercase
+        if Path(f"{d}:\\").exists()
+    ]
+    return jsonify({"current": "", "parent": None, "dirs": drives})
+
+
 @bp.route("/browse", methods=["GET"])
 def browse_path():
     path = request.args.get("path", "")
 
-    # Windows with no path → list available drives
     if sys.platform == "win32" and path in ("", "/"):
-        drives = [
-            {"name": f"{d}:\\", "path": f"{d}:\\"}
-            for d in string.ascii_uppercase
-            if Path(f"{d}:\\").exists()
-        ]
-        return jsonify({"current": "", "parent": None, "dirs": drives})
+        return _list_windows_drives()
 
     p = Path(path) if path else Path("/")
     if not p.is_dir():
-        # Path doesn't exist — fall back to root
         if sys.platform == "win32":
-            drives = [
-                {"name": f"{d}:\\", "path": f"{d}:\\"}
-                for d in string.ascii_uppercase
-                if Path(f"{d}:\\").exists()
-            ]
-            return jsonify({"current": "", "parent": None, "dirs": drives})
+            return _list_windows_drives()
         p = Path("/")
 
     try:

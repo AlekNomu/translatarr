@@ -50,7 +50,11 @@ def create_app(config_dir: Path | None = None, _testing: bool = False) -> Flask:
 
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
-    seed_defaults(conn)
+    try:
+        seed_defaults(conn)
+        _settings = _load_settings(conn)
+    finally:
+        conn.close()
 
     # ── Blueprints ────────────────────────────────────────────────────────
     app.register_blueprint(settings_bp)
@@ -74,8 +78,6 @@ def create_app(config_dir: Path | None = None, _testing: bool = False) -> Flask:
     app.extensions["web_log_handler"] = web_handler
 
     # ── Task manager + scheduler ──────────────────────────────────────────
-    _settings = _load_settings(conn)
-    conn.close()
 
     tm = TaskManager(app, max_workers=int(_settings.get("workers", "4")))
     app.extensions["task_manager"] = tm

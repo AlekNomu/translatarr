@@ -4,26 +4,17 @@
 
 from __future__ import annotations
 
-import urllib.error
 import urllib.parse
 import urllib.request
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
+from translatarr_web.blueprints import _NoRedirect
 from translatarr_web.database import get_db
 from translatarr_web.media import delete_subtitle_for_media
 from translatarr_web.settings import load_settings
 
 bp = Blueprint("movies", __name__, url_prefix="/api/movies")
-
-
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    """Prevent urllib from following redirects (a redirect = auth rejected)."""
-
-    def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
-        raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
-
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
 
 
 @bp.route("/radarr-image")
@@ -65,7 +56,7 @@ def _proxy_poster(raw: str | None) -> str | None:
 
 
 def _movie_row(r) -> dict:
-    raw_poster = r["poster_url"] if "poster_url" in r.keys() else None
+    raw_poster = r["poster_url"] if "poster_url" in r else None
     return {
         "id": r["id"],
         "title": r["title"],

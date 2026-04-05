@@ -77,6 +77,7 @@ def check_sync(
 
         if not sub.text.strip():
             issues.append(SyncIssue(sub.index, "empty text"))
+
     if video_duration is not None and subtitles:
         last = subtitles[-1]
         if last.end > video_duration + END_OF_VIDEO_TOLERANCE:

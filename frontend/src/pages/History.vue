@@ -93,7 +93,7 @@ function formatDate(d: string): string {
 }
 
 function basename(path: string): string {
-  return path.split("/").pop() || path;
+  return path.split(/[\\/]/).pop() || path;
 }
 
 function actionBadge(action: string): string {

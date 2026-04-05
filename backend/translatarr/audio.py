@@ -57,6 +57,7 @@ def get_duration(video_path: Path) -> float | None:
     except Exception:
         return None
 
+
 def extract_audio(video_path: Path, wav_path: Path) -> None:
     """
     Extract the first audio track from *video_path* and write it as a

@@ -35,7 +35,7 @@
     <div v-if="seasons.length > 0" class="seasons-actions">
       <button
         class="btn btn--icon"
-        :disabled="generatingAll"
+        :disabled="generatingAll || missingCount === 0"
         :title="generatingAll ? lang.series.queuing : lang.series.generateAllMissing"
         @click="generateAll"
       >

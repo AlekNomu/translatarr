@@ -20,17 +20,17 @@ from translatarr.audio import (
     get_duration,
     require_ffmpeg,
 )
-# re-exported so scanner.py has a single import point
-__all__ = [
-    "find_srt_by_lang", "find_source_srt_with_label",
-    "target_srt_tags", "get_english_srt",
-    "run_from_srt", "run_from_mkv",
-]
 from translatarr.models import SubtitleTrack
 from translatarr.srt_io import read_srt, write_srt
 from translatarr.sync_checker import check_sync
 from translatarr.transcriber import transcribe
 from translatarr.translator import translate_track
+
+__all__ = [
+    "find_srt_by_lang", "find_source_srt_with_label",
+    "target_srt_tags", "get_english_srt",
+    "run_from_srt", "run_from_mkv",
+]
 
 logger = logging.getLogger("translatarr")
 
@@ -42,6 +42,7 @@ whisper_lock = threading.Lock()
 # ─────────────────────────────────────────────────────────────────────────────
 
 _EN_SRT_TAGS = ("en", "eng", "english", "")
+_HI_MARKERS = ("hi", "sdh", "cc")
 
 # ISO 639 short → common variants for finding existing SRT files
 LANG_TAG_ALIASES: dict[str, tuple[str, ...]] = {
@@ -74,9 +75,6 @@ def find_srt_by_lang(mkv_path: Path, lang_tags: tuple[str, ...]) -> Path | None:
             if candidate.exists():
                 return candidate
     return None
-
-
-_HI_MARKERS = ("hi", "sdh", "cc")
 
 
 def find_source_srt_with_label(mkv_path: Path) -> str | None:

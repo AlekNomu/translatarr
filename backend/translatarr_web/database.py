@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS movie_metadata (
 def get_db() -> sqlite3.Connection:
     """Return the per-request SQLite connection (stored on Flask ``g``)."""
     if "db" not in g:
-        db_path = g.get("db_path") or current_app.config.get("DB_PATH", ":memory:")
+        db_path = current_app.config.get("DB_PATH", ":memory:")
         g.db = sqlite3.connect(
             db_path,
             detect_types=sqlite3.PARSE_DECLTYPES,
@@ -132,7 +132,3 @@ def init_app(app: Flask, db_path: Path) -> None:
     """Register the database teardown and store *db_path* for ``get_db``."""
     app.config["DB_PATH"] = str(db_path)
     app.teardown_appcontext(close_db)
-
-    @app.before_request
-    def _set_db_path() -> None:
-        g.db_path = app.config["DB_PATH"]

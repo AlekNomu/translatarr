@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -40,6 +41,7 @@ class TaskManager:
     def __init__(self, app: Flask, max_workers: int = 4) -> None:
         self._app = app
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._scan_lock = threading.Lock()
 
     # ── Public API ────────────────────────────────────────────────────────
 
@@ -49,14 +51,15 @@ class TaskManager:
         If a scan is already queued or running, returns its existing task id
         instead of creating a duplicate.
         """
-        with self._app.app_context():
-            db = get_db()
-            existing = db.execute(
-                "SELECT id FROM tasks WHERE task_type = 'scan' AND status IN ('queued', 'running') LIMIT 1"
-            ).fetchone()
-            if existing:
-                return existing["id"]
-        task_id = self._create_task("scan")
+        with self._scan_lock:
+            with self._app.app_context():
+                db = get_db()
+                existing = db.execute(
+                    "SELECT id FROM tasks WHERE task_type = 'scan' AND status IN ('queued', 'running') LIMIT 1"
+                ).fetchone()
+                if existing:
+                    return existing["id"]
+            task_id = self._create_task("scan")
         self._executor.submit(self._run_scan, task_id)
         return task_id
 
@@ -111,22 +114,17 @@ class TaskManager:
                     movies_path=settings.get("movies_path", "/movies"),
                     target_lang=settings.get("target_lang", "fr"),
                 )
-                detail = f"added={result.added}, updated={result.updated}, removed={result.removed}"
-                self._update_task(db, task_id, status="completed", progress=100, detail=detail)
+                detail_parts = [f"added={result.added}, updated={result.updated}, removed={result.removed}"]
 
                 # ── Sonarr metadata sync (new or updated series)
                 synced = sync_series_metadata(db, settings)
                 if synced:
-                    detail += f", sonarr: {synced} series synced"
+                    detail_parts.append(f"sonarr: {synced} series synced")
 
                 # ── Radarr metadata sync (new or updated movies)
                 synced_movies = sync_movie_metadata(db, settings)
                 if synced_movies:
-                    detail += f", radarr: {synced_movies} movies synced"
-
-                if synced or synced_movies:
-                    db.execute("UPDATE tasks SET detail = ? WHERE id = ?", (detail, task_id))
-                    db.commit()
+                    detail_parts.append(f"radarr: {synced_movies} movies synced")
 
                 if settings.get("generate_after_scan", "0") == "1":
                     pending = db.execute(
@@ -141,9 +139,9 @@ class TaskManager:
                     ).fetchall()
                     for row in pending:
                         self.submit_subtitle(row["id"])
-                    detail += f", queued {len(pending)} subtitle job(s)"
-                    db.execute("UPDATE tasks SET detail = ? WHERE id = ?", (detail, task_id))
-                    db.commit()
+                    detail_parts.append(f"queued {len(pending)} subtitle job(s)")
+
+                self._update_task(db, task_id, status="completed", progress=100, detail=", ".join(detail_parts))
             except Exception as exc:
                 logger.error("Scan failed: %s", exc)
                 self._update_task(db, task_id, status="failed", detail=str(exc))
@@ -174,9 +172,7 @@ class TaskManager:
 
             def on_progress(done: int, total: int) -> None:
                 pct = int(done / total * 100) if total else 0
-                with self._app.app_context():
-                    d = get_db()
-                    self._update_task(d, task_id, progress=pct)
+                self._update_task(db, task_id, progress=pct)
 
             try:
                 result = run_from_mkv(
@@ -189,15 +185,14 @@ class TaskManager:
                 )
 
                 action = result or "skipped"
-                self._update_task(db, task_id, status="completed", progress=100)
 
-                # Record in history
+                # Stage history + media_items before marking completed so all
+                # three writes land in the same commit inside _update_task.
                 db.execute(
                     """INSERT INTO history (media_id, file_path, action, target_lang, detail)
                     VALUES (?, ?, ?, ?, ?)""",
                     (media_id, str(mkv_path), action, target_lang, str(output_path)),
                 )
-                # Update media_items subtitle status
                 if result:
                     db.execute(
                         """UPDATE media_items
@@ -205,7 +200,7 @@ class TaskManager:
                         WHERE id = ?""",
                         (str(output_path), media_id),
                     )
-                db.commit()
+                self._update_task(db, task_id, status="completed", progress=100)
 
                 # ── Jellyfin refresh when the subtitle queue drains
                 if result:

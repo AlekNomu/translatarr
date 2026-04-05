@@ -85,6 +85,9 @@ class ScanResult:
     unchanged: int = 0
 
 
+_VIDEO_GLOBS = ("*.mkv", "*.mp4")
+
+
 def scan_library(
     db: sqlite3.Connection,
     series_path: str,
@@ -101,8 +104,6 @@ def scan_library(
     movies_dir = Path(movies_path)
 
     discovered: dict[str, dict] = {}
-
-    _VIDEO_GLOBS = ("*.mkv", "*.mp4")
 
     if series_dir.is_dir():
         for glob in _VIDEO_GLOBS:

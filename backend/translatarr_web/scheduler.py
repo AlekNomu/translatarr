@@ -40,5 +40,3 @@ def init_scheduler(
 
     scheduler.start()
     return scheduler
-
-

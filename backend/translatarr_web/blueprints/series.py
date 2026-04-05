@@ -4,20 +4,12 @@
 
 from __future__ import annotations
 
-import urllib.error
 import urllib.parse
 import urllib.request
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    """Prevent urllib from following redirects (a redirect = auth rejected)."""
-
-    def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
-        raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
-
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
-
+from translatarr_web.blueprints import _NoRedirect
 from translatarr_web.database import get_db
 from translatarr_web.media import delete_subtitle_for_media
 from translatarr_web.settings import load_settings
@@ -198,7 +190,6 @@ def generate_episode(name: str, media_id: int):
     tm = current_app.extensions["task_manager"]
     task_id = tm.submit_subtitle(media_id)
     return jsonify({"task_id": task_id}), 202
-
 
 
 # ── Delete subtitle endpoints ─────────────────────────────────────────────────

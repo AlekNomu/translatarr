@@ -1,7 +1,7 @@
 {
   "name": "translatarr-web",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
