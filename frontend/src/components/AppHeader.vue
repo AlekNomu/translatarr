@@ -1,6 +1,15 @@
 <template>
   <header class="app-header">
-    <h1 class="app-header__title">{{ pageTitle }}</h1>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button class="hamburger" @click="emit('toggle-sidebar')" :aria-label="'Menu'">
+        <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="2" y1="4.5" x2="16" y2="4.5"/>
+          <line x1="2" y1="9" x2="16" y2="9"/>
+          <line x1="2" y1="13.5" x2="16" y2="13.5"/>
+        </svg>
+      </button>
+      <h1 class="app-header__title">{{ pageTitle }}</h1>
+    </div>
     <div class="app-header__actions">
       <SearchBox />
       <button class="btn btn--ghost" @click="scan" :disabled="scanning">
@@ -16,6 +25,8 @@ import { useRoute } from "vue-router";
 import { useTasksStore } from "@/stores/tasks";
 import { lang } from "@/lang";
 import SearchBox from "@/components/SearchBox.vue";
+
+const emit = defineEmits<{ "toggle-sidebar": [] }>();
 
 const route = useRoute();
 const tasksStore = useTasksStore();

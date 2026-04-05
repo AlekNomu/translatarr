@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'sidebar--open': open }">
     <div class="sidebar__logo">
       <img src="/favicon.ico" class="sidebar__logo-icon" alt="" />
       {{ lang.app.name }}
@@ -60,8 +60,10 @@ import { ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import { lang } from "@/lang";
 
-const route = useRoute();
+defineProps<{ open: boolean }>();
+defineEmits<{ close: [] }>();
 
+const route = useRoute();
 const settingsOpen = ref(false);
 const systemOpen = ref(false);
 

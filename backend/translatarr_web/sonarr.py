@@ -30,6 +30,18 @@ def fetch_series_list(host: str, port: str, api_key: str, timeout: int) -> list[
         return json.loads(resp.read())
 
 
+def fetch_episode_list(host: str, port: str, api_key: str, timeout: int, series_id: int) -> list[dict]:
+    """Fetch all episodes for a series from Sonarr API v3.
+
+    :raises urllib.error.URLError: On network failure.
+    :raises urllib.error.HTTPError: On HTTP error.
+    """
+    url = f"http://{host}:{port}/api/v3/episode?seriesId={series_id}"
+    req = urllib.request.Request(url, headers={"X-Api-Key": api_key})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
 def build_metadata_row(sonarr_series: dict) -> dict:
     """Extract storable metadata fields from a Sonarr series object."""
     images = {img["coverType"]: img["url"] for img in sonarr_series.get("images", [])}
@@ -121,6 +133,34 @@ def sync_series_metadata(db: sqlite3.Connection, settings: dict) -> int:
         if match is None:
             continue
 
+        # Correct series_name in media_items with Sonarr's canonical title
+        canonical_name = match.get("title") or series_name
+        if canonical_name != series_name:
+            db.execute(
+                "UPDATE media_items SET series_name = ? WHERE media_type = 'episode' AND series_name = ?",
+                (canonical_name, series_name),
+            )
+
+        # Fetch and apply canonical episode titles from Sonarr
+        sonarr_id = match.get("id")
+        try:
+            sonarr_episodes = fetch_episode_list(host, port, api_key, timeout, sonarr_id)
+            by_se: dict[tuple[int, int], str] = {
+                (e["seasonNumber"], e["episodeNumber"]): e.get("title") or ""
+                for e in sonarr_episodes
+                if e.get("title")
+            }
+            ep_rows = db.execute(
+                "SELECT id, season, episode FROM media_items WHERE media_type = 'episode' AND series_name = ?",
+                (canonical_name,),
+            ).fetchall()
+            for ep_row in ep_rows:
+                title = by_se.get((ep_row["season"] or 0, ep_row["episode"] or 0))
+                if title:
+                    db.execute("UPDATE media_items SET title = ? WHERE id = ?", (title, ep_row["id"]))
+        except Exception as exc:
+            logger.warning("Sonarr episode title sync failed for '%s': %s", canonical_name, exc)
+
         meta = build_metadata_row(match)
         db.execute(
             """INSERT INTO series_metadata
@@ -138,7 +178,7 @@ def sync_series_metadata(db: sqlite3.Connection, settings: dict) -> int:
                    last_aired  = excluded.last_aired,
                    series_path = excluded.series_path,
                    fetched_at  = excluded.fetched_at""",
-            {"series_name": series_name, **meta},
+            {"series_name": canonical_name, **meta},
         )
         updated += 1
 

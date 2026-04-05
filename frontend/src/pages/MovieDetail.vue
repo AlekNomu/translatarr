@@ -183,14 +183,15 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 
 .movie-meta {
   display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 28px;
+  margin-bottom: 28px;
   align-items: flex-start;
+  width: 100%;
 }
 
 .movie-meta__poster {
-  width: 120px;
-  min-width: 120px;
+  width: 200px;
+  min-width: 200px;
   border-radius: var(--radius);
   object-fit: cover;
   aspect-ratio: 2/3;
@@ -204,23 +205,23 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 }
 
 .movie-meta__title {
-  margin: 0 0 10px;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0 0 14px;
+  font-size: 28px;
+  font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .movie-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .chip {
-  font-size: 12px;
-  padding: 3px 8px;
+  font-size: 13px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -228,16 +229,16 @@ onUnmounted(() => tasksStore.stopScanWatcher());
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  max-width: 480px;
 }
 
 .chip--success { border-color: var(--success); color: var(--success-light); }
 .chip--warning { border-color: var(--warning); color: var(--warning); }
 
 .movie-meta__overview {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
   margin: 0;
 }
 

@@ -16,7 +16,15 @@
           class="search-dropdown__item"
           @mousedown.prevent="goSeries(s)"
         >
-          {{ s.series_name }}
+          <div class="search-dropdown__thumb">
+            <img v-if="s.poster_url" :src="s.poster_url" alt="" />
+          </div>
+          <div class="search-dropdown__info">
+            <div class="search-dropdown__name">{{ s.series_name }}</div>
+            <div class="search-dropdown__meta">
+              {{ s.episode_count }} {{ s.episode_count > 1 ? lang.series.episodes : lang.series.episode }}
+            </div>
+          </div>
         </div>
       </div>
       <div v-if="movieResults.length">
@@ -27,8 +35,13 @@
           class="search-dropdown__item"
           @mousedown.prevent="goMovie(m)"
         >
-          {{ m.title }}
-          <span v-if="m.year" class="search-dropdown__year">{{ m.year }}</span>
+          <div class="search-dropdown__thumb">
+            <img v-if="m.poster_url" :src="m.poster_url" alt="" />
+          </div>
+          <div class="search-dropdown__info">
+            <div class="search-dropdown__name">{{ m.title }}</div>
+            <div v-if="m.year" class="search-dropdown__meta">{{ m.year }}</div>
+          </div>
         </div>
       </div>
       <div
@@ -85,7 +98,6 @@ function onOutside(e: MouseEvent) {
   }
 }
 
-// Ensure data is loaded when the user starts typing
 function onInput() {
   if (!store.series.length) store.fetchSeries();
   if (!store.movies.length) store.fetchMovies();

@@ -99,6 +99,7 @@
       </div>
 
       <div v-show="openSeasons.has(season.number)" class="season__body">
+        <div class="table-scroll">
         <table class="table">
           <thead>
             <tr>
@@ -153,6 +154,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
@@ -369,14 +371,15 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 
 .series-meta {
   display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 28px;
+  margin-bottom: 28px;
   align-items: flex-start;
+  width: 100%;
 }
 
 .series-meta__poster {
-  width: 120px;
-  min-width: 120px;
+  width: 200px;
+  min-width: 200px;
   border-radius: var(--radius);
   object-fit: cover;
   aspect-ratio: 2/3;
@@ -390,23 +393,23 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 }
 
 .series-meta__title {
-  margin: 0 0 10px;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0 0 14px;
+  font-size: 28px;
+  font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .series-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .chip {
-  font-size: 12px;
-  padding: 3px 8px;
+  font-size: 13px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -414,7 +417,7 @@ onUnmounted(() => tasksStore.stopScanWatcher());
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  max-width: 480px;
 }
 
 .chip--success { border-color: var(--success); color: var(--success-light); }
@@ -422,9 +425,9 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 .chip--muted   { color: var(--text-muted); }
 
 .series-meta__overview {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
   margin: 0;
 }
 
@@ -476,6 +479,10 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 
 .season__body {
   border-top: 1px solid var(--border);
+}
+
+.table-scroll {
+  overflow-x: auto;
 }
 
 @keyframes spin {

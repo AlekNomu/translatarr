@@ -115,10 +115,16 @@ export const lang = {
       title: "No movies found",
       text: "Configure the movies path in Settings and run a scan.",
     },
+    prev: "Prev",
+    next: "Next",
+    page: (current: number, total: number) => `Page ${current} of ${total}`,
   },
 
   series: {
     loading: "Loading…",
+    prev: "Prev",
+    next: "Next",
+    page: (current: number, total: number) => `Page ${current} of ${total}`,
     generateAllMissing: "Generate All Missing",
     deleteAllSubtitles: "Delete All Subtitles",
     generateSeason: "Generate Season",

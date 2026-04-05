@@ -61,12 +61,16 @@ a {
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .app-content {
   flex: 1;
   padding: 24px 32px;
-  max-width: 1200px;
+}
+
+.sidebar-overlay {
+  display: none;
 }
 
 // ── Sidebar ──────────────────────────────────────────────────────────────
@@ -83,6 +87,7 @@ a {
   flex-direction: column;
   z-index: 100;
   overflow-y: auto;
+  transition: left 0.25s ease;
 
   &__logo {
     padding: 20px 16px;
@@ -255,16 +260,17 @@ a {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  width: 320px;
+  width: 340px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   z-index: 500;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .search-dropdown__label {
-  padding: 6px 12px 4px;
+  padding: 8px 12px 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
@@ -273,26 +279,59 @@ a {
 }
 
 .search-dropdown__item {
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 6px 12px;
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
 
   &:hover {
     background: var(--bg-hover);
   }
 }
 
-.search-dropdown__year {
+.search-dropdown__thumb {
+  width: 36px;
+  min-width: 36px;
+  height: 54px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.search-dropdown__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-dropdown__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-dropdown__meta {
   font-size: 12px;
   color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .search-dropdown__empty {
-  padding: 12px;
+  padding: 16px;
   font-size: 13px;
   color: var(--text-muted);
   text-align: center;
@@ -401,6 +440,18 @@ a {
       background: var(--bg-hover);
       color: var(--text-primary);
     }
+  }
+
+  &--secondary {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    &:hover:not(:disabled) {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-light);
+    }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 
   &--icon {
@@ -755,4 +806,108 @@ a {
   &__icon { font-size: 48px; margin-bottom: 16px; }
   &__title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
   &__text { font-size: 14px; }
+}
+
+// ── Hamburger (hidden on desktop) ─────────────────────────────────────────
+
+.hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  svg { width: 18px; height: 18px; }
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+  .sidebar {
+    left: calc(-1 * var(--sidebar-width));
+    &--open { left: 0; }
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+
+  .app-main {
+    margin-left: 0;
+  }
+
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .app-content {
+    padding: 16px;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .search-input {
+    width: 160px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    &__actions {
+      gap: 8px;
+    }
+  }
+
+  .app-content {
+    padding: 12px;
+  }
+
+  .movie-meta,
+  .series-meta {
+    flex-direction: column;
+  }
+
+  .movie-meta__poster,
+  .series-meta__poster {
+    width: 120px;
+    min-width: unset;
+  }
+
+  .movie-meta__title,
+  .series-meta__title {
+    font-size: 22px;
+  }
+
+  .media-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-input {
+    width: 120px;
+  }
+
+  .season__body {
+    overflow-x: auto;
+  }
+
+  .confirm {
+    width: calc(100vw - 32px);
+  }
 }
