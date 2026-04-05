@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
-import pytest
 
-from translatarr.pipeline import find_srt_by_lang, find_source_srt_with_label, target_srt_tags
+from translatarr.pipeline import find_srt_by_lang, target_srt_tags
 
 
 # ─────────────────────────────────────────────────────────────────────────────

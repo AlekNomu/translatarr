@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="margin-bottom: 16px; display: flex; gap: 8px">
+    <div class="filter-bar">
       <button
         v-for="f in filters"
         :key="f.value"
@@ -38,7 +38,7 @@
 
     <div v-if="total > perPage" class="pagination">
       <button class="btn btn--ghost" :disabled="page <= 1" @click="page--; load()">{{ lang.history.prev }}</button>
-      <span class="pagination__info">Page {{ page }} of {{ Math.ceil(total / perPage) }}</span>
+      <span class="pagination__info">{{ lang.history.page(page, Math.ceil(total / perPage)) }}</span>
       <button class="btn btn--ghost" :disabled="page * perPage >= total" @click="page++; load()">{{ lang.history.next }}</button>
     </div>
   </div>
@@ -110,3 +110,11 @@ function actionBadge(action: string): string {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+</style>

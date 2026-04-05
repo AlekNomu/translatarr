@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <button class="hamburger" @click="emit('toggle-sidebar')" :aria-label="'Menu'">
+    <div class="app-header__left">
+      <button class="hamburger" @click="emit('toggle-sidebar')" aria-label="Menu">
         <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <line x1="2" y1="4.5" x2="16" y2="4.5"/>
           <line x1="2" y1="9" x2="16" y2="9"/>

@@ -7,7 +7,7 @@
             <td><strong>{{ lang.systemStatus.version }}</strong></td>
             <td>
               {{ status.version }}
-              <span v-if="updateAvailable" class="badge badge--warning" style="margin-left: 8px;">
+              <span v-if="updateAvailable" class="badge badge--warning update-badge">
                 ⚠ {{ lang.systemStatus.updateAvailable(latestVersion!) }}
               </span>
             </td>
@@ -99,3 +99,9 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.update-badge {
+  margin-left: 8px;
+}
+</style>

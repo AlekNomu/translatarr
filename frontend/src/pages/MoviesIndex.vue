@@ -64,32 +64,7 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 </script>
 
 <style scoped>
-.card--row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-}
-
-.card__poster {
-  width: 60px;
-  min-width: 60px;
-  align-self: stretch;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  display: block;
-  background: var(--bg-hover);
-}
-
-.card__info {
-  flex: 1;
-  min-width: 0;
-}
-
 .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 16px;
   margin-top: 24px;
 }

@@ -103,13 +103,16 @@ function onInput() {
   if (!store.movies.length) store.fetchMovies();
 }
 
+let inputEl: HTMLInputElement | null = null;
+
 onMounted(() => {
   document.addEventListener("mousedown", onOutside);
-  const input = boxEl.value?.querySelector("input");
-  if (input) input.addEventListener("input", onInput);
+  inputEl = boxEl.value?.querySelector("input") ?? null;
+  if (inputEl) inputEl.addEventListener("input", onInput);
 });
 
 onUnmounted(() => {
   document.removeEventListener("mousedown", onOutside);
+  if (inputEl) inputEl.removeEventListener("input", onInput);
 });
 </script>

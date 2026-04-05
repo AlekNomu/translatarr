@@ -29,7 +29,7 @@
 
       <div class="fp__footer">
         <span class="fp__selected">{{ current || "/" }}</span>
-        <div style="display:flex; gap:8px">
+        <div class="fp__footer-actions">
           <button class="btn btn--ghost" @click="$emit('cancel')">{{ lang.folderPicker.cancel }}</button>
           <button class="btn btn--primary" :disabled="!current" @click="$emit('select', current)">
             {{ lang.folderPicker.select }}
@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import axios from "axios";
+import api from "@/api";
 import { lang } from "@/lang";
 
 const props = defineProps<{ initialPath?: string }>();
@@ -60,7 +60,7 @@ async function navigate(path: string | null) {
   if (path === null) return;
   loading.value = true;
   try {
-    const { data } = await axios.get("/api/settings/browse", { params: { path } });
+    const { data } = await api.get("/settings/browse", { params: { path } });
     current.value = data.current;
     parent.value = data.parent;
     dirs.value = data.dirs;

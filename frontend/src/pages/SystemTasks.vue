@@ -1,13 +1,13 @@
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px">
-      <span style="font-size: 13px; color: var(--text-muted)">
-        {{ tasks.length }} {{ tasks.length === 1 ? lang.systemTasks.task : lang.systemTasks.tasks }}
+    <div class="tasks-header">
+      <span class="tasks-count">
+        {{ tasksStore.tasks.length }} {{ tasksStore.tasks.length === 1 ? lang.systemTasks.task : lang.systemTasks.tasks }}
       </span>
       <button class="btn btn--primary" @click="load">{{ lang.actions.refresh }}</button>
     </div>
 
-    <div v-if="tasks.length === 0" class="empty-state">
+    <div v-if="tasksStore.tasks.length === 0" class="empty-state">
       <div class="empty-state__title">{{ lang.systemTasks.noTasks.title }}</div>
       <div class="empty-state__text">{{ lang.systemTasks.noTasks.text }}</div>
     </div>
@@ -24,7 +24,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="t in tasks" :key="t.id">
+        <tr v-for="t in tasksStore.tasks" :key="t.id">
           <td>{{ t.task_type === "generate_subtitle" ? lang.systemTasks.types.subtitle : lang.systemTasks.types.scan }}</td>
           <td>
             <span :class="statusBadge(t.status)">{{ t.status }}</span>
@@ -54,22 +54,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import { tasksApi } from "@/api";
-import type { Task } from "@/stores/tasks";
+import { useTasksStore } from "@/stores/tasks";
 import { lang } from "@/lang";
 
-const tasks = ref<Task[]>([]);
+const tasksStore = useTasksStore();
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
 async function load() {
-  const { data } = await tasksApi.list();
-  tasks.value = data;
+  await tasksStore.fetchTasks();
 }
 
 async function cancel(id: string) {
   await tasksApi.cancel(id);
-  await load();
+  await tasksStore.fetchTasks();
 }
 
 function statusBadge(status: string): string {
@@ -89,9 +88,8 @@ function formatDate(iso: string): string {
 
 onMounted(() => {
   load();
-  // Auto-refresh while tasks are active
   pollInterval = setInterval(() => {
-    if (tasks.value.some(t => t.status === "queued" || t.status === "running")) {
+    if (tasksStore.tasks.some(t => t.status === "queued" || t.status === "running")) {
       load();
     }
   }, 3000);
@@ -103,6 +101,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tasks-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .progress-bar {
   width: 80px;
   height: 6px;

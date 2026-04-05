@@ -17,7 +17,7 @@
           <span v-if="metadata.series_path" class="chip">📁 {{ metadata.series_path }}</span>
           <span class="chip">📺 {{ episodes.length }} {{ episodes.length > 1 ? lang.series.episodes : lang.series.episode }}</span>
           <span class="chip" :class="missingCount === 0 ? 'chip--success' : 'chip--warning'">
-            {{ missingCount === 0 ? '✅' : '⚠️' }} {{ missingCount }} missing
+            {{ missingCount === 0 ? '✅' : '⚠️' }} {{ missingCount }} {{ lang.badges.missing }}
           </span>
           <span v-if="metadata.status" class="chip" :class="metadata.status === 'ended' ? 'chip--muted' : 'chip--success'">
             {{ statusLabel(metadata.status) }}
@@ -125,7 +125,7 @@
                   {{ ep.has_target_srt ? lang.badges.yes : lang.badges.missing }}
                 </span>
               </td>
-              <td style="display: flex; gap: 6px">
+              <td class="cell--actions">
                 <button
                   v-if="!ep.has_target_srt"
                   class="btn btn--icon"
@@ -330,6 +330,8 @@ async function confirmDelete() {
 watch(() => props.name, () => {
   episodes.value = [];
   openSeasons.value = new Set();
+  generatingAll.value = false;
+  deletingAll.value = false;
   generatingSeasons.value = new Set();
   generatingEpisodes.value = new Set();
   load();
@@ -485,8 +487,9 @@ onUnmounted(() => tasksStore.stopScanWatcher());
   overflow-x: auto;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.cell--actions {
+  display: flex;
+  gap: 6px;
 }
 
 .spinner {

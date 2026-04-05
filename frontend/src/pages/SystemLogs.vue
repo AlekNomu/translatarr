@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 12px">
-      <div style="display: flex; gap: 8px">
+    <div class="log-toolbar">
+      <div class="log-toolbar__left">
         <button class="btn btn--ghost" @click="clearDisplay">{{ lang.actions.clearDisplay }}</button>
       </div>
       <span class="badge badge--info" v-if="connected">{{ lang.badges.live }}</span>
@@ -14,7 +14,7 @@
         :key="i"
         :class="['log-entry', `log-entry--${entry.level}`]"
       >{{ formatDate(entry.timestamp) }} [{{ entry.level }}] {{ entry.message }}</div>
-      <div v-if="!entries.length" style="color: var(--text-muted)">{{ lang.systemLogs.waitingForOutput }}</div>
+      <div v-if="!entries.length" class="log-empty">{{ lang.systemLogs.waitingForOutput }}</div>
     </div>
   </div>
 </template>
@@ -82,3 +82,21 @@ onUnmounted(() => {
   es?.close();
 });
 </script>
+
+<style scoped>
+.log-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.log-toolbar__left {
+  display: flex;
+  gap: 8px;
+}
+
+.log-empty {
+  color: var(--text-muted);
+}
+</style>

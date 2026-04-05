@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="!metadata" style="margin-top: 16px; display: flex; gap: 12px; align-items: center">
+    <div v-if="!metadata" class="movie-fallback-info">
       <span v-if="movie.source_srt_label" class="badge badge--info">{{ movie.source_srt_label }}</span>
       <span v-else class="badge badge--danger">{{ lang.badges.none }}</span>
       <span :class="movie.has_target_srt ? 'badge badge--success' : 'badge badge--warning'">
@@ -116,6 +116,7 @@ async function deleteSubtitle() {
 watch(() => props.id, () => {
   movie.value = null;
   metadata.value = null;
+  generating.value = false;
   load();
 });
 
@@ -235,6 +236,13 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 .chip--success { border-color: var(--success); color: var(--success-light); }
 .chip--warning { border-color: var(--warning); color: var(--warning); }
 
+.movie-fallback-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
 .movie-meta__overview {
   font-size: 14px;
   color: var(--text-secondary);
@@ -242,10 +250,6 @@ onUnmounted(() => tasksStore.stopScanWatcher());
   margin: 0;
 }
 
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 
 .spinner {
   display: block;

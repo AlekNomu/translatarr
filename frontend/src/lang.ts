@@ -107,6 +107,7 @@ export const lang = {
     empty: "No history yet",
     prev: "Prev",
     next: "Next",
+    page: (current: number, total: number) => `Page ${current} of ${total}`,
   },
 
   movies: {

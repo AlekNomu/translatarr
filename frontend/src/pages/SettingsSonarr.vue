@@ -4,7 +4,7 @@
       <button class="btn btn--primary" :disabled="saving || !connectionOk" @click="save">
         {{ saving ? lang.actions.saving : lang.actions.saveSettings }}
       </button>
-      <span v-if="saved" style="margin-left: 12px; color: var(--success)">{{ lang.actions.saved }}</span>
+      <span v-if="saved" style="color: var(--success)">{{ lang.actions.saved }}</span>
       <span v-else-if="!connectionOk" class="save-hint">{{ lang.settings.testRequiredHint }}</span>
     </div>
 
@@ -74,142 +74,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
-import { useSettingsStore } from "@/stores/settings";
-import { settingsApi } from "@/api";
+import { ref } from "vue";
+import { useIntegrationSettings } from "@/composables/useIntegrationSettings";
 import FolderPicker from "@/components/FolderPicker.vue";
 import { lang } from "@/lang";
 
-const store = useSettingsStore();
-const saving = ref(false);
-const saved = ref(false);
-const testing = ref(false);
-const connectionOk = ref(false);
-const testLabel = ref(lang.settings.testConnection);
 const pickerField = ref<"series_path" | null>(null);
 
-const form = reactive({
-  sonarr_enabled: "0",
-  sonarr_host: "",
-  sonarr_port: "",
-  sonarr_http_timeout: "",
-  sonarr_api_key: "",
-  series_path: "",
-});
-
-watch(form, () => {
-  connectionOk.value = false;
-  testLabel.value = lang.settings.testConnection;
-});
-
-async function load() {
-  if (!Object.keys(store.settings).length) await store.fetch();
-  Object.assign(form, store.settings);
-}
-
-async function save() {
-  saving.value = true;
-  saved.value = false;
-  try {
-    await store.save({ ...form });
-    saved.value = true;
-    setTimeout(() => { saved.value = false; }, 3000);
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function testConnection() {
-  testing.value = true;
-  testLabel.value = lang.settings.testConnection;
-  try {
-    const { data } = await settingsApi.testConnection("sonarr", {
-      host: form.sonarr_host,
-      port: form.sonarr_port,
-      http_timeout: form.sonarr_http_timeout,
-      api_key: form.sonarr_api_key,
-    });
-    if (data.ok) {
-      connectionOk.value = true;
-      testLabel.value = `Sonarr ${data.version}`;
-    } else {
-      connectionOk.value = false;
-      testLabel.value = lang.settings.testFailed;
-      setTimeout(() => { testLabel.value = lang.settings.testConnection; }, 2000);
-    }
-  } catch {
-    connectionOk.value = false;
-    testLabel.value = lang.settings.testFailed;
-    setTimeout(() => { testLabel.value = lang.settings.testConnection; }, 2000);
-  } finally {
-    testing.value = false;
-  }
-}
-
-onMounted(load);
+const { form, saving, saved, testing, connectionOk, testLabel, save, testConnection } =
+  useIntegrationSettings(
+    "sonarr",
+    { sonarr_enabled: "0", sonarr_host: "", sonarr_port: "", sonarr_http_timeout: "", sonarr_api_key: "", series_path: "" },
+    (f) => ({ host: f.sonarr_host, port: f.sonarr_port, http_timeout: f.sonarr_http_timeout, api_key: f.sonarr_api_key }),
+  );
 </script>
 
 <style scoped>
-.page-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.save-hint {
-  font-size: 0.85rem;
-  color: var(--text-muted, #6b7280);
-}
-
-/* Toggle slider */
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-.toggle__input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.toggle__track {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  background: var(--border, #d1d5db);
-  border-radius: 12px;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-.toggle__track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.toggle__input:checked + .toggle__track {
-  background: var(--primary, #3b82f6);
-}
-.toggle__input:checked + .toggle__track::after {
-  transform: translateX(20px);
-}
-.toggle__label {
-  font-size: 0.9rem;
-}
-
-/* Spinner */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 .spinner {
   display: inline-block;
   width: 12px;

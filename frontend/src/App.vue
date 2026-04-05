@@ -26,7 +26,6 @@ const settingsStore = useSettingsStore();
 const route = useRoute();
 const sidebarOpen = ref(false);
 
-// Close sidebar on navigation
 watch(() => route.path, () => { sidebarOpen.value = false; });
 
 settingsStore.fetch();

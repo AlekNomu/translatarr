@@ -4,7 +4,7 @@
       <button class="btn btn--primary" :disabled="saving" @click="save">
         {{ saving ? lang.actions.saving : lang.actions.saveSettings }}
       </button>
-      <span v-if="saved" style="margin-left: 12px; color: var(--success)">{{ lang.actions.saved }}</span>
+      <span v-if="saved" style="color: var(--success)">{{ lang.actions.saved }}</span>
     </div>
 
     <div class="card">
@@ -125,55 +125,3 @@ async function save() {
 
 onMounted(load);
 </script>
-
-<style scoped>
-.page-actions {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-.toggle__input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.toggle__track {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  background: var(--border, #d1d5db);
-  border-radius: 12px;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-.toggle__track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.toggle__input:checked + .toggle__track {
-  background: var(--primary, #3b82f6);
-}
-.toggle__input:checked + .toggle__track::after {
-  transform: translateX(20px);
-}
-.toggle__label {
-  font-size: 0.9rem;
-}
-</style>

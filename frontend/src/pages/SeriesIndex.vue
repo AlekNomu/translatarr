@@ -20,7 +20,7 @@
                 &middot; {{ lang.series.season }} {{ s.first_season }}<template v-if="s.last_season !== s.first_season"> - {{ s.last_season }}</template>
               </template>
             </div>
-            <div style="margin-top: 8px">
+            <div class="card__badge">
               <span :class="s.subtitled_count === s.episode_count ? 'badge badge--success' : 'badge badge--warning'">
                 {{ s.subtitled_count }}/{{ s.episode_count }} {{ lang.series.subtitled }}
               </span>
@@ -69,32 +69,11 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 </script>
 
 <style scoped>
-.card--row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-}
-
-.card__poster {
-  width: 60px;
-  min-width: 60px;
-  align-self: stretch;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  display: block;
-  background: var(--bg-hover);
-}
-
-.card__info {
-  flex: 1;
-  min-width: 0;
+.card__badge {
+  margin-top: 8px;
 }
 
 .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 16px;
   margin-top: 24px;
 }
