@@ -17,7 +17,7 @@
           {{ generating ? lang.series.queuing : lang.actions.generateSubtitles }}
         </button>
         <button
-          v-if="movie.has_target_srt"
+          v-if="movie.has_target_srt && movie.target_srt_path"
           class="btn btn--labeled btn--labeled-danger"
           @click="showConfirm = true"
         >

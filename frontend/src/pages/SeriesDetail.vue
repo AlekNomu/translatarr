@@ -46,7 +46,7 @@
         </svg>
       </button>
       <button
-        v-if="hasAnySubtitle"
+        v-if="hasAnyDeletable"
         class="btn btn--icon btn--icon-danger"
         :disabled="deletingAll"
         :title="lang.series.deleteAllSubtitles"
@@ -85,7 +85,7 @@
           </svg>
         </button>
         <button
-          v-if="season.subtitled > 0"
+          v-if="season.deletable > 0"
           class="btn btn--icon btn--icon-danger"
           :disabled="deletingSeasons.has(season.number)"
           :title="lang.series.deleteSeasonSubtitles"
@@ -139,7 +139,7 @@
                   </svg>
                 </button>
                 <button
-                  v-if="ep.has_target_srt"
+                  v-if="ep.has_target_srt && ep.target_srt_path"
                   class="btn btn--icon btn--icon-danger"
                   :title="lang.actions.deleteTitle"
                   @click="pendingDelete = { type: 'episode', id: ep.id, title: ep.title }"
@@ -187,6 +187,7 @@ interface SeasonGroup {
   episodes: Episode[];
   subtitled: number;
   missing: number;
+  deletable: number;
 }
 
 interface SeriesMetadata {
@@ -222,10 +223,11 @@ const seasons = computed<SeasonGroup[]>(() => {
       episodes: eps,
       subtitled: eps.filter(e => e.has_target_srt).length,
       missing: eps.filter(e => !e.has_target_srt).length,
+      deletable: eps.filter(e => e.has_target_srt && e.target_srt_path).length,
     }));
 });
 
-const hasAnySubtitle = computed(() => episodes.value.some(e => e.has_target_srt));
+const hasAnyDeletable = computed(() => episodes.value.some(e => e.has_target_srt && e.target_srt_path));
 const missingCount = computed(() => episodes.value.filter(e => !e.has_target_srt).length);
 
 function formatDate(iso: string): string {

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import logging
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -13,7 +15,18 @@ from translatarr_web.database import get_db
 from translatarr_web.media import delete_subtitle_for_media
 from translatarr_web.settings import load_settings
 
+logger = logging.getLogger("translatarr")
+
 bp = Blueprint("movies", __name__, url_prefix="/api/movies")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Prevent urllib from following redirects (a redirect = auth rejected)."""
+
+    def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
+        raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
+
+    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
 
 
 @bp.route("/radarr-image")
@@ -36,12 +49,21 @@ def radarr_image():
     # Strip cache-busting query params; pass apikey as query param (required for /MediaCover/)
     image_path = path.split("?")[0]
     url = f"http://{host}:{port}{image_path}?apikey={urllib.parse.quote(api_key)}"
-    req = urllib.request.Request(url)
+    logger.debug("Radarr image proxy: GET %s", url)
+
+    opener = urllib.request.build_opener(_NoRedirect)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(url, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "image/jpeg")
+            if "text/html" in content_type:
+                logger.warning("Radarr image returned HTML for %s (check API key / auth settings)", url)
+                return "", 404
             return Response(resp.read(), content_type=content_type)
-    except Exception:
+    except urllib.error.HTTPError as exc:
+        logger.warning("Radarr image HTTP %d for %s", exc.code, url)
+        return "", 404
+    except Exception as exc:
+        logger.warning("Radarr image proxy error for %s: %s", url, exc)
         return "", 404
 
 
