@@ -4,15 +4,11 @@
 
 from __future__ import annotations
 
-import logging
 import urllib.error
 import urllib.parse
 import urllib.request
 
 from flask import Blueprint, Response, current_app, jsonify, request
-
-logger = logging.getLogger("translatarr")
-
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     """Prevent urllib from following redirects (a redirect = auth rejected)."""
@@ -46,24 +42,18 @@ def sonarr_image():
         timeout = int(settings.get("sonarr_http_timeout", "60"))
     except ValueError:
         timeout = 60
-    # Strip cache-busting query params; pass apikey as query param (required for /MediaCover/)
+    # Route through /api/v3/ so the API-key middleware applies, not Forms auth
     image_path = path.split("?")[0]
-    url = f"http://{host}:{port}{image_path}?apikey={urllib.parse.quote(api_key)}"
-    logger.debug("Sonarr image proxy: GET %s", url)
+    url = f"http://{host}:{port}/api/v3{image_path}?apikey={urllib.parse.quote(api_key)}"
 
     opener = urllib.request.build_opener(_NoRedirect)
     try:
         with opener.open(url, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "image/jpeg")
             if "text/html" in content_type:
-                logger.warning("Sonarr image returned HTML for %s (check API key / auth settings)", url)
                 return "", 404
             return Response(resp.read(), content_type=content_type)
-    except urllib.error.HTTPError as exc:
-        logger.warning("Sonarr image HTTP %d for %s", exc.code, url)
-        return "", 404
-    except Exception as exc:
-        logger.warning("Sonarr image proxy error for %s: %s", url, exc)
+    except Exception:
         return "", 404
 
 

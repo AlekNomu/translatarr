@@ -60,12 +60,17 @@ def create_app(config_dir: Path | None = None, _testing: bool = False) -> Flask:
     app.register_blueprint(tasks_bp)
     app.register_blueprint(history_bp)
 
-    # ── Log handler for SSE streaming ────────────────────────────────────
+    # ── Log handler for SSE streaming + console output ───────────────────
+    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
     web_handler = WebLogHandler()
-    web_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    web_handler.setFormatter(fmt)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(fmt)
     translatarr_logger = logging.getLogger("translatarr")
     translatarr_logger.setLevel(logging.INFO)
     translatarr_logger.addHandler(web_handler)
+    translatarr_logger.addHandler(console_handler)
+    translatarr_logger.propagate = False
     app.extensions["web_log_handler"] = web_handler
 
     # ── Task manager + scheduler ──────────────────────────────────────────

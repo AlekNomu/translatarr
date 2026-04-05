@@ -117,6 +117,15 @@ def sync_movie_metadata(db: sqlite3.Connection, settings: dict) -> int:
         if match is None:
             continue
 
+        # Correct title/year in media_items with Radarr's canonical values
+        radarr_title = match.get("title") or ""
+        radarr_year = match.get("year")
+        if radarr_title and (radarr_title != title or radarr_year != year):
+            db.execute(
+                "UPDATE media_items SET title = ?, year = ? WHERE file_path = ?",
+                (radarr_title, radarr_year, file_path),
+            )
+
         meta = build_metadata_row(match)
         db.execute(
             """INSERT INTO movie_metadata
