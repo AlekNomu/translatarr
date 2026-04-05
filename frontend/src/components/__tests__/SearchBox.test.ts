@@ -15,6 +15,7 @@ vi.mock("@/lang", () => ({
   lang: {
     header: { searchPlaceholder: "Search…", noResults: "No results" },
     nav: { series: "Series", movies: "Movies" },
+    series: { episode: "episode", episodes: "episodes" },
   },
 }));
 
@@ -26,6 +27,7 @@ function makeStore(seriesNames: string[], movieTitles: { id: number; title: stri
       subtitled_count: 0,
       first_season: 1,
       last_season: 1,
+      poster_url: null,
     })),
     movies: movieTitles.map(m => ({
       id: m.id,
@@ -33,10 +35,12 @@ function makeStore(seriesNames: string[], movieTitles: { id: number; title: stri
       year: m.year ?? null,
       file_path: "",
       has_source_srt: false,
+      source_srt_label: null,
       has_target_srt: false,
       target_srt_path: null,
       file_size: null,
       duration: null,
+      poster_url: null,
     })),
     fetchSeries: vi.fn(),
     fetchMovies: vi.fn(),

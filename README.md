@@ -98,7 +98,7 @@ services:
       - /path/to/movies:/movies
       - /path/to/tv:/tv
     ports:
-      - "6868:6868"
+      - 6868:6868
     restart: unless-stopped
 ```
 
