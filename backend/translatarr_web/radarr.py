@@ -113,6 +113,11 @@ def sync_movie_metadata(db: sqlite3.Connection, settings: dict) -> int:
         # ── Phase 3: title + year fallback
         if match is None:
             match = by_title_year.get((title.lower(), year))
+        # Radarr uses ': ' in canonical titles but filesystem folders replace ':' with ' - '
+        # (colons are not allowed on Windows/NTFS). Try the normalized form as a second attempt.
+        if match is None:
+            normalized = title.replace(" - ", ": ").lower()
+            match = by_title_year.get((normalized, year))
 
         if match is None:
             continue

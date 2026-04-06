@@ -170,3 +170,27 @@ class TestSyncMovieMetadata:
         _insert_movie(mem_db, "Unknown Film", "/movies/Unknown Film (1999)/film.mkv", year=1999)
         count = sync_movie_metadata(mem_db, _RADARR_SETTINGS)
         assert count == 0
+
+    @patch("translatarr_web.radarr.fetch_movie_list", return_value=[
+        {
+            "id": 99,
+            "title": "Avatar: Fire and Ash",
+            "year": 2025,
+            "overview": "The next chapter.",
+            "images": [],
+            "path": "/movies/Avatar - Fire and Ash (2025)",
+            "movieFile": {"id": 99, "path": "/movies/Avatar - Fire and Ash (2025)/Avatar.mkv"},
+        }
+    ])
+    def test_matches_colon_title_via_dash_folder_name(self, _mock, mem_db):
+        """Radarr stores 'Avatar: Fire and Ash' but the folder (and our title) uses ' - '."""
+        _insert_movie(
+            mem_db,
+            "Avatar - Fire and Ash",
+            "/mnt/nas/Avatar - Fire and Ash (2025)/Avatar.mkv",
+            year=2025,
+        )
+        count = sync_movie_metadata(mem_db, _RADARR_SETTINGS)
+        assert count == 1
+        row = mem_db.execute("SELECT title FROM media_items").fetchone()
+        assert row["title"] == "Avatar: Fire and Ash"
