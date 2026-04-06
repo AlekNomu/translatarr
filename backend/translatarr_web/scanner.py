@@ -66,10 +66,10 @@ def _parse_movie_title(path: Path) -> tuple[str, int | None]:
     if m:
         return stem[: m.start()].strip(), int(m.group(1))
     clean = stem.replace(".", " ")
-    m = _YEAR_SEP_RE.search(clean)
-    if m:
+    current_year = datetime.date.today().year
+    for m in _YEAR_SEP_RE.finditer(clean):
         year_val = int(m.group(1))
-        if 1900 <= year_val <= datetime.date.today().year + 1:
+        if 1900 <= year_val <= current_year + 1:
             return clean[: m.start()].strip(), year_val
     return clean, None
 

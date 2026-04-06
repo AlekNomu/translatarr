@@ -56,7 +56,7 @@ def _proxy_poster(raw: str | None) -> str | None:
 
 
 def _movie_row(r) -> dict:
-    raw_poster = r["poster_url"] if "poster_url" in r else None
+    raw_poster = r["poster_url"] if "poster_url" in r.keys() else None
     return {
         "id": r["id"],
         "title": r["title"],
@@ -85,7 +85,22 @@ def list_movies():
         WHERE m.media_type = 'movie'
         ORDER BY m.title
     """).fetchall()
-    return jsonify([_movie_row(r) for r in rows])
+    return jsonify([
+        {
+            "id": r["id"],
+            "title": r["title"],
+            "year": r["year"],
+            "file_path": r["file_path"],
+            "has_source_srt": bool(r["has_source_srt"]),
+            "source_srt_label": r["source_srt_label"],
+            "has_target_srt": bool(r["has_target_srt"]),
+            "target_srt_path": r["target_srt_path"],
+            "file_size": r["file_size"],
+            "duration": r["duration"],
+            "poster_url": _proxy_poster(r["poster_url"]),
+        }
+        for r in rows
+    ])
 
 
 @bp.route("/<int:movie_id>", methods=["GET"])
