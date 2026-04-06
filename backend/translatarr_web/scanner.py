@@ -60,7 +60,17 @@ def _parse_episode(path: Path) -> dict | None:
 
 
 def _parse_movie_title(path: Path) -> tuple[str, int | None]:
-    """Extract title and optional year from a movie filename."""
+    """Extract title and optional year from a movie path.
+
+    Prefers the parent folder name when it follows the Radarr convention
+    ``Movie Title (Year)`` — the folder preserves special characters (colons,
+    apostrophes, dashes) that MKV filenames often mangle or omit.
+    """
+    folder = path.parent.name
+    m = _YEAR_PAREN_RE.search(folder)
+    if m:
+        return folder[: m.start()].strip(), int(m.group(1))
+
     stem = path.stem
     m = _YEAR_PAREN_RE.search(stem)
     if m:

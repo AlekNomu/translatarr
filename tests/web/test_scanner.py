@@ -67,6 +67,39 @@ class TestParseMovieTitle:
         assert title == "The Dark Knight"
         assert year == 2008
 
+    def test_prefers_radarr_folder_name_over_filename(self, tmp_path):
+        """Folder 'Movie Title (Year)' is cleaner than the MKV filename."""
+        folder = tmp_path / "Avatar - Fire and Ash (2025)"
+        folder.mkdir()
+        p = folder / "Avatar.Fire.and.Ash.2025.2160p.WEB-DL.mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "Avatar - Fire and Ash"
+        assert year == 2025
+
+    def test_folder_name_preserves_apostrophe(self, tmp_path):
+        folder = tmp_path / "Bram Stoker's Dracula (1992)"
+        folder.mkdir()
+        p = folder / "Bram.Stokers.Dracula.1992.BluRay.mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "Bram Stoker's Dracula"
+        assert year == 1992
+
+    def test_folder_name_preserves_full_subtitle(self, tmp_path):
+        folder = tmp_path / "A Silent Voice - The Movie (2016)"
+        folder.mkdir()
+        p = folder / "A.Silent.Voice.2016.mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "A Silent Voice - The Movie"
+        assert year == 2016
+
+    def test_folder_name_strips_quality_string_from_filename(self, tmp_path):
+        folder = tmp_path / "Blade Runner 2049 (2017)"
+        folder.mkdir()
+        p = folder / "Blade Runner 2049 2017 1080p BluRay REMUX AVC DTS-HD MA TrueHD 7 1 Atmos-FGT.mkv"
+        title, year = _parse_movie_title(p)
+        assert title == "Blade Runner 2049"
+        assert year == 2017
+
 
 # ── scan_library ──────────────────────────────────────────────────────────────
 
