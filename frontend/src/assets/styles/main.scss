@@ -498,7 +498,7 @@ a {
 .form-group {
   margin-bottom: 20px;
 
-  label {
+  label:not(.toggle) {
     display: block;
     font-size: 13px;
     font-weight: 500;
@@ -631,11 +631,12 @@ a {
 .card__poster {
   width: 60px;
   min-width: 60px;
-  align-self: stretch;
+  height: 80px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   display: block;
   background: var(--bg-hover);
+  flex-shrink: 0;
 }
 
 .card__info {

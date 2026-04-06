@@ -141,7 +141,7 @@ def run_from_srt(
 ) -> None:
     """Translate an existing SRT file."""
     track = read_srt(srt_path)
-    logger.info("Source: %s (%d entries)", srt_path.name, len(track))
+    logger.info("Translating %s (%d subtitles) → %s…", srt_path.stem, len(track), target_lang)
     track = translate_track(track, target_lang=target_lang, on_progress=on_progress)
 
     if sync_check:
@@ -168,6 +168,7 @@ def run_from_mkv(
     """
     require_ffmpeg()
 
+    logger.info("Processing: %s", mkv_path.stem)
     video_duration = get_duration(mkv_path) if sync_check else None
 
     english_srt, embedded_srt_path = get_english_srt(mkv_path)
@@ -217,20 +218,18 @@ def _resolve_track(
     if target_srt and english_srt:
         en_track = read_srt(english_srt)
         tgt_track = read_srt(target_srt)
-        logger.info("Target SRT: %s (%d entries)", target_srt.name, len(tgt_track))
-        logger.info("English SRT: %s (%d entries)", english_srt.name, len(en_track))
 
         if len(en_track) == len(tgt_track):
             if tgt_track.has_same_timestamps(en_track):
-                logger.info("Already aligned — nothing to do.")
+                logger.info("Already up to date — skipping.")
                 return None, "skipped"
 
-            logger.info("Resyncing target timestamps from English…")
+            logger.info("Resyncing timestamps from English subtitles…")
             return tgt_track.resync_from(en_track), "resynced"
 
         logger.info(
-            "Entry count mismatch (EN=%d, TGT=%d) — translating EN",
-            len(en_track), len(tgt_track),
+            "EN and %s subtitle counts differ (%d vs %d) — retranslating…",
+            target_lang, len(en_track), len(tgt_track),
         )
         return translate_track(
             en_track, source_lang="en", target_lang=target_lang, on_progress=on_progress,
@@ -238,13 +237,13 @@ def _resolve_track(
 
     if english_srt:
         track = read_srt(english_srt)
-        source = "embedded" if embedded_srt_path else english_srt.name
-        logger.info("English SRT: %s (%d entries)", source, len(track))
+        source = "embedded" if embedded_srt_path else "file"
+        logger.info("Translating from English (%s, %d subtitles) → %s…", source, len(track), target_lang)
         return translate_track(
             track, source_lang="en", target_lang=target_lang, on_progress=on_progress,
         ), "translated"
 
-    logger.info("No subtitles found — transcribing with Whisper (%s)", model)
+    logger.info("No subtitles found — transcribing audio with Whisper (%s)…", model)
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         wav_path = Path(tmp.name)
@@ -256,11 +255,12 @@ def _resolve_track(
             track, detected_lang = transcribe(
                 wav_path, model_name=model, language=language,
             )
-            logger.info("Detected language: %s — %d segments", detected_lang, len(track))
+            logger.info("Detected language: %s — %d subtitles transcribed", detected_lang, len(track))
     finally:
         if wav_path.exists():
             wav_path.unlink()
 
+    logger.info("Translating transcription → %s…", target_lang)
     return translate_track(
         track, source_lang=language or "auto", target_lang=target_lang,
         on_progress=on_progress,
@@ -272,9 +272,7 @@ def _resolve_track(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _log_sync(issues: list) -> None:
-    if not issues:
-        logger.info("Sync check: OK")
-    else:
-        logger.warning("Sync check: %d issue(s)", len(issues))
+    if issues:
+        logger.warning("Sync check: %d timing issue(s) detected", len(issues))
         for issue in issues:
             logger.warning("  %s", issue)

@@ -7,6 +7,7 @@ parse metadata from filenames, and synchronise the ``media_items`` table.
 
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 import sqlite3
@@ -68,7 +69,7 @@ def _parse_movie_title(path: Path) -> tuple[str, int | None]:
     m = _YEAR_SEP_RE.search(clean)
     if m:
         year_val = int(m.group(1))
-        if 1900 <= year_val <= 2099:
+        if 1900 <= year_val <= datetime.date.today().year + 1:
             return clean[: m.start()].strip(), year_val
     return clean, None
 

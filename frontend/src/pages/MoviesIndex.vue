@@ -14,8 +14,8 @@
           <img v-if="m.poster_url" :src="m.poster_url" class="card__poster" alt="" />
           <div class="card__info">
             <div class="card__title">{{ m.title }}</div>
-            <div class="card__meta">
-              <template v-if="m.year">{{ m.year }} &middot; </template>
+            <div v-if="m.year" class="card__meta">{{ m.year }}</div>
+            <div class="card__badge">
               <span :class="m.has_target_srt ? 'badge badge--success' : 'badge badge--warning'">
                 {{ m.has_target_srt ? lang.badges.subtitled : lang.badges.missing }}
               </span>
@@ -64,6 +64,10 @@ onUnmounted(() => tasksStore.stopScanWatcher());
 </script>
 
 <style scoped>
+.card__badge {
+  margin-top: 8px;
+}
+
 .pagination {
   gap: 16px;
   margin-top: 24px;
