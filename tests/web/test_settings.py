@@ -5,11 +5,13 @@ from __future__ import annotations
 import sqlite3
 import pytest
 
+from translatarr.translator import DEFAULT_PROVIDER, PROVIDERS
 from translatarr_web.settings import (
     DEFAULT_SETTINGS,
     WHISPER_MODEL_INFO,
     load_setting,
     load_settings,
+    provider_config,
     save_settings,
     seed_defaults,
 )
@@ -127,3 +129,53 @@ def test_integration_defaults_values(mem_db):
         assert settings[f"{service}_enabled"] == "0"
         assert settings[f"{service}_http_timeout"] == "60"
         assert settings[f"{service}_api_key"] == ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Translation provider settings
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_translation_provider_defaults_to_google(mem_db):
+    seed_defaults(mem_db)
+    assert load_settings(mem_db)["translation_provider"] == DEFAULT_PROVIDER
+
+
+def test_every_provider_field_is_seeded(mem_db):
+    """A provider's inputs must exist as settings or the UI cannot bind to them."""
+    seed_defaults(mem_db)
+    keys = {r["key"] for r in mem_db.execute("SELECT key FROM settings").fetchall()}
+    for spec in PROVIDERS.values():
+        for field in spec.fields:
+            assert field.key in keys, f"Missing default for {spec.key}.{field.key}"
+
+
+def test_toggle_fields_default_on(mem_db):
+    seed_defaults(mem_db)
+    settings = load_settings(mem_db)
+    for spec in PROVIDERS.values():
+        for field in spec.fields:
+            expected = "1" if field.kind == "toggle" else ""
+            assert settings[field.key] == expected
+
+
+def test_provider_config_selects_only_engine_credentials(mem_db):
+    seed_defaults(mem_db)
+    save_settings(mem_db, {"deepl_api_key": "secret", "sonarr_api_key": "unrelated"})
+
+    config = provider_config(load_settings(mem_db))
+
+    assert config["deepl_api_key"] == "secret"
+    assert "sonarr_api_key" not in config
+    assert "movies_path" not in config
+
+
+def test_provider_config_tolerates_missing_keys():
+    config = provider_config({})
+    assert set(config) == {f.key for s in PROVIDERS.values() for f in s.fields}
+    assert all(value == "" for value in config.values())
+
+
+def test_switching_provider_persists(mem_db):
+    seed_defaults(mem_db)
+    save_settings(mem_db, {"translation_provider": "mymemory"})
+    assert load_setting(mem_db, "translation_provider") == "mymemory"

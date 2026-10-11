@@ -13,6 +13,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
+from translatarr.translator import describe_providers
 from translatarr_web.database import get_db
 from translatarr_web.settings import (
     WHISPER_MODEL_INFO,
@@ -35,6 +36,7 @@ def get_settings():
     return jsonify({
         "settings": settings,
         "whisper_models": WHISPER_MODEL_INFO,
+        "translation_providers": describe_providers(),
     })
 
 

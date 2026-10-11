@@ -33,6 +33,55 @@
       </div>
 
       <div class="form-group">
+        <label>{{ lang.settings.translationEngine }}</label>
+        <select v-model="form.translation_provider" class="form-select">
+          <option v-for="{ key, info } in sortedProviders" :key="key" :value="key">
+            {{ info.label }}
+          </option>
+        </select>
+        <div class="form-help" v-if="currentProvider">
+          {{ currentProvider.description }}
+        </div>
+        <div class="form-help" v-if="currentProvider && !currentProvider.supports_auto">
+          {{ lang.settings.engineNoAutoDetect }}
+        </div>
+      </div>
+
+      <div
+        v-for="field in currentProviderFields"
+        :key="field.key"
+        class="form-group provider-field"
+      >
+        <label v-if="field.kind === 'toggle'" class="toggle">
+          <input
+            type="checkbox"
+            class="toggle__input"
+            v-model="form[field.key]"
+            true-value="1"
+            false-value="0"
+          />
+          <span class="toggle__track"></span>
+          <span class="toggle__label">{{ field.label }}</span>
+        </label>
+        <template v-else>
+          <label>{{ field.label }}</label>
+          <input
+            v-model="form[field.key]"
+            :type="field.kind === 'secret' ? 'password' : 'text'"
+            :placeholder="field.placeholder"
+            class="form-input"
+          />
+        </template>
+        <div class="form-help" v-if="field.help">{{ field.help }}</div>
+      </div>
+
+      <div class="form-group provider-field" v-if="missingProviderFields.length">
+        <div class="form-help provider-field__warning">
+          {{ lang.settings.engineMissingConfig(missingProviderFields.join(", ")) }}
+        </div>
+      </div>
+
+      <div class="form-group">
         <label>{{ lang.settings.whisperModel }}</label>
         <select v-model="form.whisper_model" class="form-select">
           <option
@@ -86,9 +135,11 @@ const store = useSettingsStore();
 const saving = ref(false);
 const saved = ref(false);
 
-const form = reactive({
+// Record, not a fixed shape: each translation engine contributes its own keys
+const form = reactive<Record<string, string>>({
   target_lang: "",
   whisper_model: "",
+  translation_provider: "",
   workers: "",
   scan_interval_minutes: "",
   generate_after_scan: "0",
@@ -104,6 +155,24 @@ const sortedWhisperModels = computed(() =>
 
 const currentModelInfo = computed(() =>
   store.whisperModels[form.whisper_model] || null
+);
+
+const sortedProviders = computed(() =>
+  Object.entries(store.translationProviders)
+    .map(([key, info]) => ({ key, info }))
+    .sort((a, b) => a.info.order - b.info.order)
+);
+
+const currentProvider = computed(
+  () => store.translationProviders[form.translation_provider] || null
+);
+
+const currentProviderFields = computed(() => currentProvider.value?.fields ?? []);
+
+const missingProviderFields = computed(() =>
+  currentProviderFields.value
+    .filter(f => f.required && !(form[f.key] ?? "").trim())
+    .map(f => f.label)
 );
 
 async function load() {
@@ -125,3 +194,17 @@ async function save() {
 
 onMounted(load);
 </script>
+
+<style scoped>
+/* Indented and ruled so engine credentials read as belonging to the engine above */
+.provider-field {
+  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+}
+
+/* Scoped under .provider-field to outrank `.form-group .form-help`, which is
+   equally specific and declared later, so a bare class loses the colour */
+.provider-field .provider-field__warning {
+  color: var(--warning);
+}
+</style>

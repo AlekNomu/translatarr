@@ -24,7 +24,7 @@ from translatarr.models import SubtitleTrack
 from translatarr.srt_io import read_srt, write_srt
 from translatarr.sync_checker import check_sync
 from translatarr.transcriber import transcribe
-from translatarr.translator import translate_track
+from translatarr.translator import DEFAULT_PROVIDER, translate_track
 
 __all__ = [
     "find_srt_by_lang", "find_source_srt_with_label",
@@ -137,12 +137,18 @@ def run_from_srt(
     target_lang: str = "fr",
     mkv_path: Path | None = None,
     sync_check: bool = True,
+    provider: str = DEFAULT_PROVIDER,
+    provider_config: dict[str, str] | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> None:
     """Translate an existing SRT file."""
     track = read_srt(srt_path)
     logger.info("Translating %s (%d subtitles) → %s…", srt_path.stem, len(track), target_lang)
-    track = translate_track(track, target_lang=target_lang, on_progress=on_progress)
+    track = translate_track(
+        track, target_lang=target_lang,
+        provider=provider, provider_config=provider_config,
+        on_progress=on_progress,
+    )
 
     if sync_check:
         duration = get_duration(mkv_path) if mkv_path else None
@@ -159,6 +165,8 @@ def run_from_mkv(
     model: str = "medium",
     language: str | None = None,
     sync_check: bool = True,
+    provider: str = DEFAULT_PROVIDER,
+    provider_config: dict[str, str] | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> str | None:
     """Full pipeline from an MKV file.
@@ -178,6 +186,7 @@ def run_from_mkv(
         track, action = _resolve_track(
             mkv_path, english_srt, target_srt, embedded_srt_path,
             target_lang=target_lang, model=model, language=language,
+            provider=provider, provider_config=provider_config,
             on_progress=on_progress,
         )
     finally:
@@ -208,6 +217,8 @@ def _resolve_track(
     target_lang: str = "fr",
     model: str = "medium",
     language: str | None = None,
+    provider: str = DEFAULT_PROVIDER,
+    provider_config: dict[str, str] | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> tuple[SubtitleTrack | None, str]:
     """Decide which pipeline branch to run and return (track, action).
@@ -232,7 +243,9 @@ def _resolve_track(
             target_lang, len(en_track), len(tgt_track),
         )
         return translate_track(
-            en_track, source_lang="en", target_lang=target_lang, on_progress=on_progress,
+            en_track, source_lang="en", target_lang=target_lang,
+            provider=provider, provider_config=provider_config,
+            on_progress=on_progress,
         ), "translated"
 
     if english_srt:
@@ -240,7 +253,9 @@ def _resolve_track(
         source = "embedded" if embedded_srt_path else "file"
         logger.info("Translating from English (%s, %d subtitles) → %s…", source, len(track), target_lang)
         return translate_track(
-            track, source_lang="en", target_lang=target_lang, on_progress=on_progress,
+            track, source_lang="en", target_lang=target_lang,
+            provider=provider, provider_config=provider_config,
+            on_progress=on_progress,
         ), "translated"
 
     logger.info("No subtitles found — transcribing audio with Whisper (%s)…", model)
@@ -262,7 +277,10 @@ def _resolve_track(
 
     logger.info("Translating transcription → %s…", target_lang)
     return translate_track(
-        track, source_lang=language or "auto", target_lang=target_lang,
+        # Whisper's detected language beats "auto": engines like DeepL and
+        # MyMemory have no auto-detection of their own.
+        track, source_lang=language or detected_lang or "auto", target_lang=target_lang,
+        provider=provider, provider_config=provider_config,
         on_progress=on_progress,
     ), "transcribed"
 

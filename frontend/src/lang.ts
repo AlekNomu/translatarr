@@ -157,6 +157,10 @@ export const lang = {
   settings: {
     targetLanguage: "Target Language",
     whisperModel: "Whisper Model",
+    translationEngine: "Translation Engine",
+    engineNoAutoDetect:
+      "This engine cannot detect the source language, so transcriptions fall back to English.",
+    engineMissingConfig: (fields: string) => `Required before use: ${fields}`,
     concurrentWorkers: "Concurrent Workers",
     workersHelp: "Requires a restart to take effect.",
     seriesPath: "Series Path",

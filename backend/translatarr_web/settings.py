@@ -9,12 +9,15 @@ from __future__ import annotations
 import os
 import sqlite3
 
+from translatarr.translator import DEFAULT_PROVIDER, PROVIDERS
+
 DEFAULT_SETTINGS: dict[str, str] = {
     "target_lang": "fr",
     "whisper_model": "medium",
     "source_language": "",
     "sync_check": "1",
     "workers": "4",
+    "translation_provider": DEFAULT_PROVIDER,
     "movies_path": "/movies",
     "series_path": "/tv",
     "scan_interval_minutes": "360",
@@ -39,6 +42,27 @@ DEFAULT_SETTINGS: dict[str, str] = {
     "jellyfin_http_timeout": "60",
     "jellyfin_api_key":      "",
 }
+
+
+def _provider_field_defaults() -> dict[str, str]:
+    """Credentials and endpoints for every engine, derived from the registry.
+
+    Deriving them means adding a translation engine needs no change here.
+    """
+    return {
+        f.key: ("1" if f.kind == "toggle" else "")
+        for spec in PROVIDERS.values()
+        for f in spec.fields
+    }
+
+
+PROVIDER_FIELD_DEFAULTS = _provider_field_defaults()
+DEFAULT_SETTINGS.update(PROVIDER_FIELD_DEFAULTS)
+
+
+def provider_config(settings: dict[str, str]) -> dict[str, str]:
+    """Return only the engine credentials, so the translator sees nothing else."""
+    return {key: settings.get(key, "") for key in PROVIDER_FIELD_DEFAULTS}
 
 # Descriptions surfaced by the settings API so the frontend can display help text.
 WHISPER_MODEL_INFO: dict[str, dict[str, str]] = {

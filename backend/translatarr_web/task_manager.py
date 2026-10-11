@@ -21,9 +21,10 @@ from typing import Any
 from flask import Flask
 
 from translatarr.pipeline import run_from_mkv
+from translatarr.translator import DEFAULT_PROVIDER
 from translatarr_web.database import get_db
 from translatarr_web.scanner import scan_library
-from translatarr_web.settings import load_settings
+from translatarr_web.settings import load_settings, provider_config
 from translatarr_web.jellyfin import refresh_library
 from translatarr_web.radarr import sync_movie_metadata
 from translatarr_web.sonarr import sync_series_metadata
@@ -181,6 +182,8 @@ class TaskManager:
                     model=settings.get("whisper_model", "medium"),
                     language=settings.get("source_language") or None,
                     sync_check=settings.get("sync_check", "1") == "1",
+                    provider=settings.get("translation_provider", DEFAULT_PROVIDER),
+                    provider_config=provider_config(settings),
                     on_progress=on_progress,
                 )
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import urllib.error
 from unittest.mock import MagicMock, patch
 
+from translatarr.translator import PROVIDERS
 from translatarr_web.settings import DEFAULT_SETTINGS
 
 
@@ -27,6 +28,27 @@ class TestGetSettings:
         models = r.get_json()["whisper_models"]
         for key, info in models.items():
             assert "VRAM" in info["description"], f"No VRAM info for model '{key}'"
+
+    def test_includes_translation_providers(self, client):
+        r = client.get("/api/settings")
+        providers = r.get_json()["translation_providers"]
+        assert set(providers) == set(PROVIDERS)
+        assert providers["google"]["label"] == "Google Translate"
+
+    def test_provider_fields_describe_their_inputs(self, client):
+        """The UI builds its inputs from this payload, so it must be complete."""
+        providers = client.get("/api/settings").get_json()["translation_providers"]
+
+        deepl = {f["key"]: f for f in providers["deepl"]["fields"]}
+        assert deepl["deepl_api_key"]["kind"] == "secret"
+        assert deepl["deepl_api_key"]["required"] is True
+        assert deepl["deepl_free_api"]["kind"] == "toggle"
+
+    def test_provider_field_keys_exist_as_settings(self, client):
+        data = client.get("/api/settings").get_json()
+        for info in data["translation_providers"].values():
+            for field in info["fields"]:
+                assert field["key"] in data["settings"]
 
 
 class TestUpdateSettings:

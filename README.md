@@ -1,6 +1,6 @@
 # Translatarr
 
-> Automatic subtitle generation for your media library — transcription via **faster-whisper** (OpenAI Whisper models, INT8 optimised), translation via **Google Translate**, no API key required.
+> Automatic subtitle generation for your media library — transcription via **faster-whisper** (OpenAI Whisper models, INT8 optimised), translation via your choice of engine (**Google Translate**, **MyMemory**, **LibreTranslate** or **DeepL**), no API key required by default.
 
 Translatarr is a self-hosted web application built to solve a common frustration: watching media on **Jellyfin** on your TV and ending up with subtitles that are out of sync, in the wrong language, or simply missing. Tools like **Bazarr** download subtitles from online sources, but when nothing is available or what's available doesn't match your encode, you're stuck. Translatarr fills that gap by generating subtitles directly from the audio using Whisper, translating them with Google Translate and validating their timing.
 
@@ -28,11 +28,10 @@ It can work **alongside Bazarr** (as a fallback when Bazarr finds nothing) or **
 
 - **Smart pipeline**: detects existing English and target-language subtitles and picks the best strategy automatically: resync, translate, or transcribe from audio
 - **Auto-resync**: if a translated `.srt` and a source `.srt` both exist with matching entry counts, Translatarr realigns the translated timestamps without re-translating anything
-- **Automatic translation** via `deep-translator` (free Google Translate, no API key required)
+- **Choice of translation engine**: Google Translate or MyMemory (both free, no API key), your own self-hosted LibreTranslate instance, or DeepL for the best quality, switchable from Settings → General
 - **Smart subtitle handling**: multi-line entries joined before translation, dialogue lines (`- Speaker`) translated independently and reassembled, HTML tags (`<i>`, `<font>`) preserved, SDH annotations (`[music]`, `(laughing)`, `♪…♪`) skipped
 - **Whisper transcription**: when no source subtitle exists, extracts audio with ffmpeg and transcribes with Whisper (auto language detection)
 - **Sync validator**: detects overlaps, negative durations, empty entries, and out-of-bounds subtitles after generation
-- **Configurable**: choose Whisper model size, source language, target language, sync check on/off
 - **Web UI**: manage movies and TV series, trigger generation per episode / season / series, view history and live logs
 - **Task queue**: subtitle generation runs in the background with progress tracking and cancellation support
 - **Scheduled scans**: periodic library scan to pick up newly added media automatically
@@ -126,10 +125,22 @@ After starting, open the web UI and go to **Settings → General**:
 | Movies path | Directory containing your movie `.mkv` files | `/movies` |
 | Series path | Directory containing your TV series `.mkv` files | `/tv` |
 | Target language | Subtitle output language (ISO 639-1 code) | `fr` |
+| Translation engine | Service used to translate subtitles (see table below) | Google Translate |
 | Whisper model | Transcription model size (see table below) | `medium` |
 | Source language | Force audio language, skip auto-detection | auto |
 | Sync check | Validate subtitle timing after generation | enabled |
 | Generate after scan | Automatically queue subtitle generation for all media without subtitles after each scan | disabled |
+
+### Translation engines
+
+Selecting an engine reveals the fields it needs, if any.
+
+| Engine | API key | Notes |
+|---|---|---|
+| **Google Translate** | not needed | Default. Free, good quality, but throttled at 5 requests/second per IP and roughly 200k requests/day. |
+| **MyMemory** | not needed | Free fallback when Google throttles you. Slower (500 characters per request); adding a contact email raises the daily quota from 1 000 to 50 000 words. |
+| **LibreTranslate** | optional | Self-hosted and open source, no quota, no throttling. Requires the URL of your own instance. |
+| **DeepL** | required | Best quality for subtitles. Works with both Free and Pro accounts. |
 
 ### Whisper model comparison
 
